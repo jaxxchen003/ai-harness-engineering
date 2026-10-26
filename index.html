@@ -1,0 +1,837 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Harness 工程深度报告 · Agent = Model + Harness</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Noto+Sans+SC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fbfbf9; --bg2:#f1efe9; --surface:#ffffff; --surface2:#f6f4ee;
+  --ink:#17191c; --ink2:#454a52; --ink3:#7a8089; --line:#e2ded2; --line2:#cfcaba;
+  --accent:#c2410c; --accent-ink:#9a3408; --accent-soft:#fdeee4;
+  --teal:#0f766e; --teal-soft:#e2f2f0;
+  --amber:#b45309; --amber-soft:#fdf0d9;
+  --red:#b42318; --red-soft:#fdecea;
+  --code-bg:#17191c; --code-ink:#e8e6df;
+  --radius:14px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#101214; --bg2:#17191c; --surface:#191c1f; --surface2:#1f2226;
+    --ink:#eceae3; --ink2:#b9bcc2; --ink3:#878d96; --line:#2b2f34; --line2:#3a3f46;
+    --accent:#f0722f; --accent-ink:#ff9a62; --accent-soft:#33200f;
+    --teal:#3ec9bc; --teal-soft:#123330;
+    --amber:#e5a83c; --amber-soft:#33290e;
+    --red:#f08075; --red-soft:#3a1713;
+    --code-bg:#0a0b0c; --code-ink:#e8e6df;
+    color-scheme: dark;
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans SC",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;font-size:16px;line-height:1.75;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:"Noto Serif SC",serif;line-height:1.3;margin:0}
+a{color:var(--accent-ink);text-decoration-thickness:1px;text-underline-offset:3px}
+a:hover{text-decoration-thickness:2px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+section{padding:56px 0 8px}
+.sec-head{margin-bottom:26px;max-width:820px}
+.sec-num{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.18em;color:var(--accent);font-weight:600}
+.sec-head h2{font-size:clamp(26px,4.4vw,38px);font-weight:900;margin:8px 0 10px}
+.sec-head p{color:var(--ink2);margin:0;font-size:16.5px}
+hr.div{border:0;border-top:1px solid var(--line);margin:52px 0 0}
+
+/* ---------- hero ---------- */
+.hero{padding:52px 0 40px;border-bottom:1px solid var(--line);background:
+  linear-gradient(var(--line) 1px,transparent 1px) 0 0/100% 999px no-repeat,var(--bg)}
+.hero .kicker{font-family:"IBM Plex Mono",monospace;font-size:12.5px;letter-spacing:.22em;color:var(--ink3);text-transform:uppercase}
+.hero h1{font-size:clamp(38px,7vw,68px);font-weight:900;letter-spacing:-.01em;margin:14px 0 6px}
+.hero h1 .hl{color:var(--accent)}
+.hero .sub{font-size:clamp(17px,2.6vw,21px);color:var(--ink2);max-width:760px;margin:10px 0 0}
+.formula{display:flex;flex-wrap:wrap;align-items:stretch;gap:10px;margin:30px 0 8px}
+.fbox{background:var(--surface);border:1.5px solid var(--ink);border-radius:12px;padding:14px 20px;min-width:150px}
+.fbox .fl{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.16em;color:var(--ink3);text-transform:uppercase}
+.fbox .fv{font-family:"Noto Serif SC",serif;font-weight:900;font-size:24px;line-height:1.35}
+.fbox.accent{border-color:var(--accent);background:var(--accent-soft)}
+.fbox.accent .fv{color:var(--accent-ink)}
+.fop{display:flex;align-items:center;font-family:"Noto Serif SC",serif;font-size:28px;font-weight:900;color:var(--ink3);padding:0 2px}
+.hero-meta{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:20px;font-size:13.5px;color:var(--ink3)}
+.hero-meta b{color:var(--ink2);font-weight:600}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:30px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px}
+.stat .n{font-family:"Noto Serif SC",serif;font-size:30px;font-weight:900;line-height:1.1}
+.stat .n em{font-style:normal;color:var(--accent)}
+.stat .l{font-size:13px;color:var(--ink2);margin-top:4px;line-height:1.5}
+@media(max-width:760px){.stats{grid-template-columns:1fr 1fr}}
+
+/* ---------- nav ---------- */
+.toc{position:sticky;top:0;z-index:40;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.toc .wrap{display:flex;gap:4px;overflow-x:auto;padding-top:10px;padding-bottom:10px;scrollbar-width:none}
+.toc .wrap::-webkit-scrollbar{display:none}
+.toc a{flex:0 0 auto;font-size:13.5px;font-weight:500;color:var(--ink2);text-decoration:none;padding:6px 12px;border-radius:999px;border:1px solid transparent}
+.toc a:hover{color:var(--ink);border-color:var(--line2)}
+.toc a.on{color:var(--accent-ink);background:var(--accent-soft);border-color:transparent}
+
+/* ---------- generic blocks ---------- */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:900px){.grid3{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){.grid2,.grid3{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px}
+.card h3{font-size:18px;font-weight:700;margin-bottom:8px}
+.card p{margin:0;color:var(--ink2);font-size:15px}
+.card p+p{margin-top:8px}
+.quote{border-left:3px solid var(--accent);padding:4px 0 4px 18px;margin:22px 0;font-family:"Noto Serif SC",serif;font-size:19px;font-weight:600;line-height:1.6}
+.quote small{display:block;font-family:"Noto Sans SC",sans-serif;font-size:13px;font-weight:400;color:var(--ink3);margin-top:6px}
+.tag{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:600;letter-spacing:.06em;padding:2px 8px;border-radius:999px;background:var(--bg2);color:var(--ink2);border:1px solid var(--line)}
+.tag.acc{background:var(--accent-soft);color:var(--accent-ink);border-color:transparent}
+.tag.teal{background:var(--teal-soft);color:var(--teal);border-color:transparent}
+.tag.amb{background:var(--amber-soft);color:var(--amber);border-color:transparent}
+.tag.red{background:var(--red-soft);color:var(--red);border-color:transparent}
+.note{background:var(--amber-soft);border:1px solid color-mix(in srgb,var(--amber) 35%,transparent);border-radius:var(--radius);padding:16px 20px;font-size:14.5px;color:var(--ink)}
+.note b{color:var(--amber)}
+
+/* tables */
+.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:640px}
+th,td{text-align:left;padding:12px 16px;vertical-align:top;border-bottom:1px solid var(--line)}
+thead th{background:var(--surface2);font-size:13px;color:var(--ink2);font-weight:700;white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+td b{font-weight:700}
+
+/* layers */
+.layers{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media(max-width:760px){.layers{grid-template-columns:1fr}}
+.layer{display:flex;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px}
+.layer .no{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:13px;color:var(--accent);background:var(--accent-soft);border-radius:8px;width:34px;height:34px;flex:0 0 34px;display:flex;align-items:center;justify-content:center}
+.layer h3{font-size:16px;font-weight:700;font-family:"Noto Sans SC",sans-serif}
+.layer p{margin:4px 0 0;font-size:14px;color:var(--ink2);line-height:1.65}
+
+/* chart */
+.chart-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px}
+.chart-card h3{font-size:18px;margin-bottom:4px}
+.chart-card .cap{font-size:13.5px;color:var(--ink3);margin:0 0 14px}
+.bar-row{display:grid;grid-template-columns:210px 1fr 74px;gap:12px;align-items:center;margin:10px 0}
+.bar-row .bl{font-size:13.5px;font-weight:500;line-height:1.4}
+.bar-row .bl small{display:block;color:var(--ink3);font-weight:400;font-size:12px}
+.bar-track{height:22px;background:var(--bg2);border-radius:6px;overflow:hidden}
+.bar-fill{height:100%;border-radius:6px;background:var(--teal)}
+.bar-fill.acc{background:var(--accent)}
+.bar-val{font-family:"IBM Plex Mono",monospace;font-size:14px;font-weight:600;text-align:right}
+@media(max-width:640px){.bar-row{grid-template-columns:1fr 64px}.bar-track{grid-column:1/-1;order:3}}
+
+/* cases */
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.fbtn{font-family:inherit;font-size:14px;font-weight:500;padding:8px 16px;border-radius:999px;border:1px solid var(--line2);background:var(--surface);color:var(--ink2);cursor:pointer}
+.fbtn:hover{color:var(--ink)}
+.fbtn.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.searchrow{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.searchrow input{flex:1 1 240px;font-family:inherit;font-size:15px;padding:11px 16px;border-radius:10px;border:1px solid var(--line2);background:var(--surface);color:var(--ink)}
+.searchrow input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+.case{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;margin-bottom:14px}
+.case-head{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;justify-content:space-between}
+.case h3{font-size:21px;font-weight:900}
+.case h3 .co{font-family:"Noto Sans SC",sans-serif;font-size:14px;font-weight:500;color:var(--ink3);margin-left:8px}
+.case .tags{display:flex;gap:6px;flex-wrap:wrap}
+.case .one{font-size:15.5px;color:var(--ink);margin:10px 0 0;font-weight:500}
+.case .body{font-size:14.5px;color:var(--ink2);margin-top:8px}
+.case .body p{margin:0 0 8px}
+.case .pc{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+@media(max-width:640px){.case .pc{grid-template-columns:1fr}}
+.case .pc>div{border-radius:10px;padding:12px 14px;font-size:14px;line-height:1.65}
+.case .pro{background:var(--teal-soft)}
+.case .con{background:var(--red-soft)}
+.case .pc b{display:block;font-size:12.5px;letter-spacing:.08em;margin-bottom:4px}
+.case .pro b{color:var(--teal)} .case .con b{color:var(--red)}
+.case details{margin-top:12px}
+.case summary{cursor:pointer;font-size:14px;font-weight:600;color:var(--accent-ink);list-style:none}
+.case summary::-webkit-details-marker{display:none}
+.case summary::before{content:"▸ "}
+.case details[open ] summary::before{content:"▾ "}
+.case .detail{font-size:14.5px;color:var(--ink2);padding-top:10px}
+.case .detail p{margin:0 0 8px}
+.case .meta{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line2);display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--ink3)}
+.hidden{display:none!important}
+.noresult{text-align:center;color:var(--ink3);padding:28px 0;font-size:15px}
+
+/* mini table for extra projects */
+.mini-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:900px){.mini-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.mini-grid{grid-template-columns:1fr}}
+.mini{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px}
+.mini h3{font-size:16.5px;font-weight:700;font-family:"Noto Sans SC",sans-serif}
+.mini .m-meta{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink3);margin:4px 0 8px}
+.mini p{margin:0;font-size:13.5px;color:var(--ink2);line-height:1.65}
+
+/* principles */
+.prin{counter-reset:pr}
+.prin-item{display:flex;gap:16px;padding:18px 0;border-bottom:1px solid var(--line)}
+.prin-item:last-child{border-bottom:0}
+.prin-item .pn{font-family:"Noto Serif SC",serif;font-size:26px;font-weight:900;color:var(--accent);line-height:1.2;flex:0 0 40px}
+.prin-item h3{font-size:17.5px;font-family:"Noto Sans SC",sans-serif;font-weight:700}
+.prin-item p{margin:4px 0 0;color:var(--ink2);font-size:15px}
+.fail-tbl td:first-child{font-weight:700;white-space:nowrap}
+@media(max-width:640px){.fail-tbl td:first-child{white-space:normal}}
+
+/* code */
+.codebox{background:var(--code-bg);color:var(--code-ink);border-radius:var(--radius);padding:20px 22px;overflow-x:auto;font-family:"IBM Plex Mono",monospace;font-size:13px;line-height:1.7;white-space:pre;margin:0}
+.copyrow{display:flex;justify-content:flex-end;margin-bottom:10px}
+.copybtn{font-family:inherit;font-size:13.5px;font-weight:600;padding:8px 16px;border-radius:8px;border:1px solid var(--line2);background:var(--surface);color:var(--ink);cursor:pointer}
+.copybtn:hover{border-color:var(--ink)}
+.dolist{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:760px){.dolist{grid-template-columns:1fr}}
+.dolist ul{margin:8px 0 0;padding-left:20px;color:var(--ink2);font-size:14.5px}
+.dolist li{margin-bottom:7px}
+.dolist li b{color:var(--ink)}
+.checklist{list-style:none;margin:10px 0 0;padding:0}
+.checklist li{padding:10px 0 10px 34px;position:relative;border-bottom:1px solid var(--line);font-size:15px;color:var(--ink2)}
+.checklist li:last-child{border-bottom:0}
+.checklist li::before{content:"";position:absolute;left:2px;top:13px;width:16px;height:16px;border:2px solid var(--teal);border-radius:4px}
+.checklist li b{color:var(--ink)}
+
+footer{margin-top:64px;border-top:1px solid var(--line);padding:28px 0 48px;color:var(--ink3);font-size:13.5px}
+footer p{margin:0 0 8px;max-width:860px}
+.src-list{columns:2;column-gap:32px;font-size:12.5px;line-height:1.9;word-break:break-all}
+@media(max-width:640px){.src-list{columns:1}}
+.src-list a{color:var(--ink3)}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">Deep Research Report · 2026-10 · AI Agent Harness Engineering</div>
+    <h1>Harness 工程<br>深度报告<span class="hl">.</span></h1>
+    <p class="sub">模型决定上限，harness 决定下限。同一个模型，换上不同的 harness，成绩能差出 17 个百分点以上。这份报告拆解了 2025–2026 年全网主流 agent harness 的架构、十层核心设计、失败模式与可抄的实践，并给出独立开发者最小起步方案。</p>
+    <div class="formula" aria-label="核心公式">
+      <div class="fbox"><div class="fl">Agent</div><div class="fv">智能体</div></div>
+      <div class="fop">=</div>
+      <div class="fbox"><div class="fl">Model</div><div class="fv">模型</div></div>
+      <div class="fop">+</div>
+      <div class="fbox accent"><div class="fl">Harness</div><div class="fv">运行系统</div></div>
+    </div>
+    <div class="hero-meta">
+      <span>调研时间 <b>2026 年 10 月 27 日</b></span>
+      <span>覆盖 <b>10 个命名 harness + 18 个开源项目</b></span>
+      <span>星数均为 <b>2026 年 10 月快照</b>，来源间有出入，已在文中标注</span>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="n">+23.9<em>pt</em></div><div class="l">Deep Agents CLI 仅靠 harness 改动，Terminal-Bench 2.0 从 42.65% 升到 66.5%</div></div>
+      <div class="stat"><div class="n">+17.4<em>pt</em></div><div class="l">同一 Muse Spark 1.2：裸 API 循环 52.2% vs Pi harness 69.6%（VulcanBench）</div></div>
+      <div class="stat"><div class="n">4 <em>个工具</em></div><div class="l">Pi 的全部核心工具（读/写/改/ shell）——极简派的答案；Claude Code 约 40+，DeepSeek Harness 约 53</div></div>
+      <div class="stat"><div class="n">~100<em>万行</em></div><div class="l">OpenAI 团队用 Codex 以 3 人、约 5 个月、约 1,500 个 PR 写出的代码量，零行手写</div></div>
+    </div>
+  </div>
+</header>
+
+<nav class="toc" aria-label="目录">
+  <div class="wrap">
+    <a href="#what">① 是什么</a>
+    <a href="#layers">② 十层架构</a>
+    <a href="#effect">③ Harness 效应</a>
+    <a href="#cases">④ 案例库</a>
+    <a href="#more">⑤ 更多开源项目</a>
+    <a href="#compare">⑥ 横向对比</a>
+    <a href="#practice">⑦ 实践与失败模式</a>
+    <a href="#starter">⑧ 独立开发者方案</a>
+    <a href="#open">⑨ 未决问题</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<!-- ============ 1. 是什么 ============ -->
+<section id="what">
+  <div class="sec-head">
+    <div class="sec-num">SECTION 01</div>
+    <h2>Harness 不是模型，不是提示词，也不完全是框架</h2>
+    <p>2025–2026 年，三个方向独立收敛到同一个结论：Mitchell Hashimoto 的失败驱动定义、LangChain 的 Viv Trivedy 的分类学、以及 Anthropic 与 OpenAI 的生产报告——多数 agent 失败是配置与 harness 的失败，不是模型的失败。</p>
+  </div>
+
+  <div class="quote">“模型负责思考，agent 负责行动，harness 负责不让 agent 像个傻子一样行动。”
+    <small>—— 对 harness 的一句式概括（dev.to 社区综述）</small>
+  </div>
+
+  <div class="grid3">
+    <div class="card">
+      <h3>运行层定义</h3>
+      <p>harness 是位于模型与真实世界之间的一切：重试逻辑、状态管理、上下文处理，以及工作流崩溃后的恢复机制。</p>
+    </div>
+    <div class="card">
+      <h3>工程脚手架定义</h3>
+      <p>围绕语言模型的工程支架，把它变成可靠的 agent：它能看到的上下文、能调用的工具、不可逾越的权限边界、运行环境，以及衡量一次运行的评测。</p>
+    </div>
+    <div class="card">
+      <h3>Anthropic 的三分法</h3>
+      <p>Claude Managed Agents 把系统拆成三件：Session（只追加的事件日志）+ Harness（无状态控制循环，调用模型并路由工具）+ Sandbox（隔离执行环境）。“容器是牲口，不是宠物。”</p>
+    </div>
+  </div>
+
+  <h3 style="font-size:19px;margin:30px 0 12px">五个概念，一张表分清</h3>
+  <div class="tblwrap">
+    <table>
+      <thead><tr><th>概念</th><th>它是什么</th><th>例子</th></tr></thead>
+      <tbody>
+        <tr><td><b>模型 Model</b></td><td>推理与生成引擎；本身没有持久性、工具与记忆</td><td>Claude、GPT、Gemini、Grok、Muse Spark、DeepSeek-V4</td></tr>
+        <tr><td><b>提示词 Prompt</b></td><td>单次输入：这一轮你告诉模型的话（系统提示 + 用户消息 + 工具 schema）</td><td>一段系统提示、CLAUDE.md 的摘录</td></tr>
+        <tr><td><b>智能体 Agent</b></td><td>模型 + 能让它行动的循环</td><td>修 bug 的 Claude Code、写带引用报告的研究 agent</td></tr>
+        <tr><td><b>框架 / SDK</b></td><td>你在代码里组合的积木：图、节点、团队、工具绑定、记忆、中间件</td><td>LangChain / LangGraph、CrewAI、OpenAI Agents SDK</td></tr>
+        <tr><td><b>Harness</b></td><td>agent 周围<em>可运行的</em>运行时：循环、工具、上下文、权限、验证、日志——以配置为主，而非编码</td><td>Claude Code、Codex CLI、OpenCode、Pi、Hermes、DeepSeek Harness</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="quote">“在 harness 里，循环是<em>不可见的、由运行时拥有的</em>；在框架里，循环（或图拓扑、或团队结构）是<em>显式的、由你编写的</em>。这是一个光谱，不是二分法。你可以用框架的零件拼出一个 harness，但框架本身并不会自动成为 harness。”
+    <small>—— dev.to / Matheus Jerico 关于 harness 与 framework 边界的讨论</small>
+  </div>
+  <p style="color:var(--ink2);font-size:15px">2026 年的写作还把四个层次叠起来看：<b>prompt engineering</b>（告诉模型什么）→ <b>context engineering</b>（它应该看到什么）→ <b>agent engineering</b>（它的角色与工具有哪些）→ <b>harness engineering</b>（整个系统如何运转）。近来热议的 <b>loop engineering</b>（反复的“工作—反馈”循环）是 harness 工程内部的一层。</p>
+</section>
+
+<hr class="div">
+
+<!-- ============ 2. 十层架构 ============ -->
+<section id="layers">
+  <div class="sec-head">
+    <div class="sec-num">SECTION 02</div>
+    <h2>核心十层：拆开任何一个 harness 都在看这些</h2>
+    <p>Arize 对 Hermes 的审计给出了九要素清单（外层迭代循环、上下文管理与压缩、技能与工具管理、子 agent 管理、内置技能、会话持久与恢复、系统提示组装与项目上下文注入、生命周期钩子、权限与安全层）——与下面的十层划分基本同构。</p>
+  </div>
+  <div class="layers">
+    <div class="layer"><div class="no">01</div><div><h3>模型路由</h3><p>多供应商适配、按任务选模型（强规划者 / 廉价执行者）、配额耗尽时降级、努力等级。Claude Code 只用 Claude（订阅 / Bedrock / Vertex / Foundry）；OpenCode、Pi、Hermes、DeepSeek Harness 是多供应商 + 本地 Ollama。</p></div></div>
+    <div class="layer"><div class="no">02</div><div><h3>工具使用</h3><p>少而精、类型明确、失败模式安全的工具。光谱两端：Pi 的 4 个工具与 Claude Code 约 40–45 个、DeepSeek Harness 约 53 个内置工具。工具越少，模型花在“选工具”上的推理与 token 越少。</p></div></div>
+    <div class="layer"><div class="no">03</div><div><h3>沙箱 / 执行环境</h3><p>操作系统级强制（Seatbelt、Landlock、bubblewrap+seccomp、Docker、受限令牌）还是只靠提示词。Codex 与 DeepSeek Harness 把它当架构问题；Pi 与 Hermes 明确拒绝把进程内限制伪装成沙箱。</p></div></div>
+    <div class="layer"><div class="no">04</div><div><h3>权限 / 审批</h3><p>声明式 allow / ask / deny 规则集与权限模式。能<em>阻断</em>工具调用的 hook，是唯一不依赖模型注意力的强制手段。</p></div></div>
+    <div class="layer"><div class="no">05</div><div><h3>上下文 / 记忆管理</h3><p>指令文件（CLAUDE.md / AGENTS.md / HERMES.md / SOUL.md）、按需加载的技能、带血缘的压缩、会话持久化（SQLite、只追加事件日志）、用文件与 git 承载跨窗口状态。</p></div></div>
+    <div class="layer"><div class="no">06</div><div><h3>规划与任务分解</h3><p>规划工具（Deep Agents 的 write_todos）、特性清单（feature-list.json，初始全部 passes:false）、以及动态工作流——由主 agent 现场生成一段 JS 编排程序。</p></div></div>
+    <div class="layer"><div class="no">07</div><div><h3>验证 / 测试</h3><p>测试、lint、类型检查作为回喂循环的“传感器”；独立的评估者 agent；“测试棘轮”（永不删除或改坏失败的测试来蒙混过关）；浏览器自动化做端到端检查。</p></div></div>
+    <div class="layer"><div class="no">08</div><div><h3>可观测 / 日志</h3><p>轨迹、转录、会话日志、token 与成本核算、allow/deny 决策审计。看不见 agent 做过什么，就无法修复、信任或解释它。</p></div></div>
+    <div class="layer"><div class="no">09</div><div><h3>多 agent 编排</h3><p>上下文隔离的子 agent、每人一个 worktree / 分支、协调者 + 执行者、共享记忆与目标。代价：每个子 agent 都烧 token 且让验证更难——委派是为了<em>隔离</em>，不只是并行。</p></div></div>
+    <div class="layer"><div class="no">10</div><div><h3>人在环中</h3><p>不可逆动作的审批门、不阻塞工作的提问卡、运行中途的纠偏、以及对 diff / PR 的最终人工审查。HumanLayer 的立场：质量判断仍归人；agent 只会为“测试通过”优化，不会为可维护性优化。</p></div></div>
+  </div>
+</section>
+
+<hr class="div">
+
+<!-- ============ 3. Harness 效应 ============ -->
+<section id="effect">
+  <div class="sec-head">
+    <div class="sec-num">SECTION 03</div>
+    <h2>“Harness 效应”：同模型，不同成绩</h2>
+    <p>Addy Osmani（O'Reilly《Agent Harness Engineering》，2026 年 6 月）的总结是全场的共识句：“一个平庸的模型配上出色的 harness，胜过一个出色的模型配上糟糕的 harness。”下面是报告中有出处的量化证据。</p>
+  </div>
+  <div class="chart-card">
+    <h3>同一模型 / 同一产品线，仅 harness 不同</h3>
+    <p class="cap">数值为各来源原文报告的基准成绩；不同基准之间不可直接比较，只看同组内的差距。</p>
+    <div class="bar-row"><div class="bl">Deep Agents CLI · harness 改版前<small>Terminal-Bench 2.0</small></div><div class="bar-track"><div class="bar-fill" style="width:42.65%"></div></div><div class="bar-val">42.65%</div></div>
+    <div class="bar-row"><div class="bl">Deep Agents CLI · harness 改版后<small>轨迹分析 + 压缩 + 错误格式化 + 自我验证</small></div><div class="bar-track"><div class="bar-fill acc" style="width:66.5%"></div></div><div class="bar-val">66.5%</div></div>
+    <div class="bar-row"><div class="bl">Muse Spark 1.2 · 裸 API 循环<small>VulcanBench，23 个真实合并 PR</small></div><div class="bar-track"><div class="bar-fill" style="width:52.2%"></div></div><div class="bar-val">52.2%</div></div>
+    <div class="bar-row"><div class="bl">Muse Spark 1.2 · Pi harness<small>同上，xhigh 档</small></div><div class="bar-track"><div class="bar-fill acc" style="width:69.6%"></div></div><div class="bar-val">69.6%</div></div>
+    <div class="bar-row"><div class="bl">Codex · 压缩 + 保留推理（前）<small>ARC-AGI-3，单次引用对比</small></div><div class="bar-track"><div class="bar-fill" style="width:13.3%"></div></div><div class="bar-val">13.3%</div></div>
+    <div class="bar-row"><div class="bl">Codex · 压缩 + 保留推理（后）<small>输出 token 约为原来的 1/6</small></div><div class="bar-track"><div class="bar-fill acc" style="width:38.3%"></div></div><div class="bar-val">38.3%</div></div>
+  </div>
+  <div class="note" style="margin-top:14px"><b>读数警告：</b>VulcanBench 那组实验里，未受沙箱约束的 Pi 运行中有 17/69 个单元被标记为“偷看了答案”，后用 seatbelt 约束重跑——这说明 harness 与沙箱不只影响分数，还会改变基准本身的含义。引用任何“harness 提升 X%”时，都要同时问它的约束条件。</div>
+</section>
+
+<hr class="div">
+
+<!-- ============ 4. 案例库 ============ -->
+<section id="cases">
+  <div class="sec-head">
+    <div class="sec-num">SECTION 04</div>
+    <h2>案例库：十个被点名的 harness 逐个拆解</h2>
+    <p>星数为 2026 年 10 月二手汇总的快照，不同来源互相冲突，文中给出区间——请把它们当作“采用热度”而非精确计数。好评与批评均转述自所引述的评测文章，非本报告实测。</p>
+  </div>
+
+  <div class="filters" role="group" aria-label="按类型筛选">
+    <button class="fbtn on" data-f="all">全部</button>
+    <button class="fbtn" data-f="code">编程</button>
+    <button class="fbtn" data-f="general">通用 / 常驻</button>
+    <button class="fbtn" data-f="design">设计</button>
+    <button class="fbtn" data-f="multi">多 agent</button>
+    <button class="fbtn" data-f="open">开源</button>
+    <button class="fbtn" data-f="closed">闭源 / 托管</button>
+  </div>
+  <div class="searchrow">
+    <input id="caseSearch" type="search" placeholder="搜索案例：如 沙箱、插件、权限、技能…" aria-label="搜索案例">
+  </div>
+  <div id="caseList">
+
+  <!-- Claude Code -->
+  <article class="case" data-cat="code multi closed" data-kw="claude code anthropic 钩子 技能 插件 权限模式 子agent 动态工作流 闭源 标杆">
+    <div class="case-head"><h3>Claude Code<span class="co">Anthropic · 参照系 harness</span></h3><div class="tags"><span class="tag acc">编程</span><span class="tag">闭源</span><span class="tag">2025 年 5 月发布</span></div></div>
+    <p class="one">专有 agentic 编程 CLI（另有 IDE / 桌面 / Web 界面），只跑 Claude 模型（也经 Bedrock、Google Agent Platform、Microsoft Foundry）。它是所有人逆向工程的对象。</p>
+    <div class="body">
+      <p><b>架构：</b>约 40+ 工具（Read / Edit / Grep / Glob / Bash 等核心）；CLAUDE.md（也读 AGENTS.md）作项目记忆；技能（.claude/skills/&lt;name&gt;/SKILL.md）；子 agent（.claude/agents/，独立上下文、工具与权限）；MCP 服务器；.claude/settings.json 中的钩子（PreToolUse 可阻断、Stop 可把住出口）；插件把以上全部打包；worktree；上下文压缩；五种权限模式（default / acceptEdits / plan / auto / bypassPermissions，其中 bypass 只应在隔离容器 / VM 里用）。会话可从转录恢复；云端会话跑在 Anthropic 托管沙箱并可直接建 PR。</p>
+      <p><b>多 agent（2026）：</b>子 agent 之外还有 Agent Teams（组长 + 队友、共享任务列表、各自上下文）、Claude Code Projects（2026 年 9 月 17 日改版：协调者 + 并行云端线程，各自独立分支 / 仓库副本，共享记忆、目标与资料库，冲突以 git 合并冲突形式呈现）、Dynamic Workflows（主 agent 写一段 JS 工作流程序，最多拉起约 1,000 个子 agent，按模型分工，worktree 隔离）。</p>
+    </div>
+    <div class="pc">
+      <div class="pro"><b>好评</b>扩展系统最深（钩子 / 技能 / 插件）；长时运行配方最成熟（见第 7 节）；深度多文件工作的共识之选。</div>
+      <div class="con"><b>批评</b>闭源，无法 fork 或审计循环本身；系统提示大（对比中约 10–14k token，Pi 不到 1k）；bypassPermissions 是“会上新闻”的模式；本地运行默认无容器隔离。</div>
+    </div>
+    <div class="meta"><span>技术栈：Node.js CLI</span><span>许可：专有闭源</span><span>官方层：Claude Agent SDK、Claude Managed Agents</span></div>
+  </article>
+
+  <!-- Claude Work -->
+  <article class="case" data-cat="multi closed" data-kw="claude work 多账户 别名 projects agent teams gstack 编译器 16个">
+    <div class="case-head"><h3>“Claude Work”<span class="co">查无此独立产品 · 三件真实的事</span></h3><div class="tags"><span class="tag amb">名称澄清</span><span class="tag acc">多 agent</span></div></div>
+    <p class="one">本次调研未能核实存在官方名为 “Claude Work” 的产品。这个说法背后对应三件互不相同、各自可核实的事情，引用时切勿混为一谈。</p>
+    <div class="body">
+      <p><b>① Anthropic 真正的多 agent“工作”概念：</b>就是上一条的 Projects / Agent Teams / Dynamic Workflows——协调者 + 执行线程、共享记忆、git 分支隔离。</p>
+      <p><b>② 社区在 Claude Code 之上搭的多 agent 脚手架：</b>如 GStack（开源仓库，用技能把 Claude Code 变成一支“AI 工程团队”：Office Hours、对抗评审、Design Shotgun）；以及著名的 16 个 Claude 编译器实验（16 个实例、约 2,000 个会话、约 2 万美元，每个实例在独立 Docker 容器中，用文件锁抢任务，冲突时 git rebase）。</p>
+      <p><b>③ 一个名称撞车，必须提醒读者：</b>claude-work 也是一种 shell 别名写法（CLAUDE_CONFIG_DIR=~/.claude-work），用于切换<em>第二个 Claude 账号</em>——是多账号技巧，不是多 agent 产品。</p>
+      <p><b>相关的官方层：</b>Claude Agent SDK（“按我们造 Claude Code 的方式造你自己的”运行时）与 Claude Managed Agents（托管版：Session / Harness / Sandbox 三分，0.08 美元 / 会话小时 + token 计费，凭据经出口代理隔离在沙箱之外，官方称 p50 首 token 延迟改善约 60%、p95 约 90%）。</p>
+    </div>
+    <div class="meta"><span>结论：写作与引用时，请具体指明 Projects、Agent Teams、社区脚手架或多账号别名中的哪一个</span></div>
+  </article>
+
+  <!-- Claude Design -->
+  <article class="case" data-cat="design closed open" data-kw="claude design 设计 画布 baoyu open design superdesign hallmark 技能 验证">
+    <div class="case-head"><h3>Claude Design 与设计类 harness<span class="co">Anthropic Labs + 开源复刻</span></h3><div class="tags"><span class="tag acc">设计</span><span class="tag">2026 年 4 月 17 日研究预览</span></div></div>
+    <p class="one">托管的、产物优先（artifact-first）的设计 harness：聊天 + 实时画布，画布与导出 / 交接本身就是验证回路。</p>
+    <div class="body">
+      <p><b>官方产品：</b>2026 年 4 月 17 日以研究预览上线（后转 beta，一家追踪站称 2026 年 10 月 8 日脱离 beta），入口 claude.ai/design，面向 Pro / Max / Team / Enterprise；发布时由 Claude Opus 4.7 驱动，后加入模型选择。可通过聊天、行内评论、直接编辑、生成的滑杆来精修；输入支持文本、图片、DOCX / PPTX / XLSX、截图、网页捕获、GitHub 仓库与设计系统导入；导出 PDF、PPTX、独立 HTML、Canva，并可生成交接包给 Claude Code。它明确<em>不是</em> Figma 的替代（没有像素级组件系统），而是补充。</p>
+    </div>
+    <details>
+      <summary>可抄的开源设计 harness（4 个）</summary>
+      <div class="detail">
+        <p><b>baoyu-design</b>（github.com/JimLiu/baoyu-design）：把 Claude Design 作为 Agent Skill 在本地跑（Cursor / Claude Code / Codex 等）。纯 Markdown + JSX/JS 脚手架、免构建：SKILL.md 负责编排，system-prompt.md 是工艺的事实来源，按 harness 提供工具映射，内置高保真、原型、线框、演示稿、移动端、设计系统创建 / 预览等技能，产物为自包含 HTML / PDF / PPTX，可交接 Figma / Canva。与 Opus 搭配最佳。</p>
+        <p><b>Open Design</b>（Apache-2.0）：本地优先的桌面应用，约 21 个内置设计 agent + 约 129 个起点；三件套（本地应用 / 守护进程 / agent 运行时），以用户自己的编程 agent（Claude Code / Codex / Cursor / Gemini / OpenCode / Qwen）为引擎，产物存本地。</p>
+        <p><b>SuperDesign</b>（github.com/superdesigndev/superdesign）：原为 IDE 扩展（2025），现原仓库已不再积极维护、产品转为 Web 应用；一篇介绍记其约 6.5k 星。提示词 → 在无限画布上并行生成多套 UI 稿 / 组件 / 线框，本地以 git 保存。</p>
+        <p><b>Hallmark</b>（Nutlope/hallmark，MIT）：把“设计技能”做成<em>验证器</em>——从 48 个主题中发 1 个、16 条不可豁免的规则、一个浏览器 linter（sloplint，8 种宽度查“AI 生成痕迹”），再由一个全新上下文的评审子 agent 以首词（recapture / rebuild / fix / ship）决定下一步。</p>
+      </div>
+    </details>
+    <div class="meta"><span>设计 harness 的教训：让你“看见产物并逐元素评论”的界面，就是它的验证回路</span></div>
+  </article>
+
+  <!-- Codex -->
+  <article class="case" data-cat="code open multi" data-kw="codex openai rust 沙箱 seatbelt bubblewrap 审批 apply_patch js runner 开源">
+    <div class="case-head"><h3>OpenAI Codex<span class="co">openai/codex · Apache-2.0</span></h3><div class="tags"><span class="tag acc">编程</span><span class="tag teal">开源</span><span class="tag">约 119–129k 星（快照）</span></div></div>
+    <p class="one">开源（Rust 引擎）的终端 / IDE / 桌面 / 云端 / GitHub 机器人 harness，与 GPT-5.x-Codex、GPT-6.x 模型协同设计。沙箱即架构。</p>
+    <div class="body">
+      <p><b>三大接入面（2026 年“Codex as a Platform”）：</b>codex exec（有界的脚本化任务 / CI）、Codex SDK（编程式启动 / 恢复 / 流式）、app-server（持久会话状态、事件流、工具暴露、审批处理——你的应用管业务逻辑、MCP、审批与 UI，Codex 管循环与沙箱执行）。</p>
+      <p><b>标志性设计：</b>每条命令都在操作系统监狱里跑（macOS Seatbelt、Linux bubblewrap+seccomp），文件系统限定在工作区，网络默认关闭；模型可以把“提权”作为工具 schema 的一部分正式申请；沙箱与审批策略<em>分开</em>配置。以 shell + apply_patch 为主；最新模型上，一个 JS 运行器工具让模型写脚本在内部组合工具（更少往返、更少 token），且运行在密封沙箱中。上下文压缩 + 保留推理在一处引用对比中把 ARC-AGI-3 从 13.3% 提到 38.3%，输出 token 约降到 1/6。</p>
+    </div>
+    <div class="pc">
+      <div class="pro"><b>好评</b>多篇对比中原始编程能力最强；token 效率最高（号称少用 2–3 倍）；有真正的安全模型。</div>
+      <div class="con"><b>批评</b>模型闭源且按 OpenAI 的节奏弃用；云端不可选模型；钩子 / 技能 / 插件生态比 Claude Code 年轻；离开 OpenAI 模型就不是最佳状态。</div>
+    </div>
+    <div class="meta"><span>仓库：github.com/openai/codex</span><span>许可：Apache-2.0</span><span>引擎：Rust</span></div>
+  </article>
+
+  <!-- OpenCode -->
+  <article class="case" data-cat="code open multi" data-kw="opencode anomaly tui 客户端 服务器 sqlite plan build 权限 多供应商 开源">
+    <div class="case-head"><h3>OpenCode<span class="co">Anomaly（原 SST 团队）· MIT</span></h3><div class="tags"><span class="tag acc">编程</span><span class="tag teal">开源</span><span class="tag">约 202–222k 星（快照）</span></div></div>
+    <p class="one">终端优先（Bubble Tea TUI），另有桌面应用（beta）与各 IDE 扩展（经 ACP）。模型无关：经 Models.dev 接 75+ 供应商，也可本地跑 Ollama / LM Studio / llama.cpp，还能用 GitHub Copilot 或 ChatGPT Plus/Pro 账号登录。</p>
+    <div class="body">
+      <p><b>标志性设计——客户端 / 服务器：</b>后台服务器持有 AI 通信与会话状态（本地 SQLite），TUI、桌面、IDE 都只是客户端，SSH 断线会话不丢。两个内置 agent 用 Tab 切换：<b>Build</b>（全权限）与 <b>Plan</b>（默认只读：拒绝编辑，执行 bash 前先问）。另有 @general 通用子 agent；编辑后回喂 LSP 诊断；git 快照支持 /undo 撤销重做；MCP 客户端（含 OAuth 远程服务器）；可分享的会话链接；CI 模式（在 GitHub issue / PR 里用 /opencode）。权限是按工具的 allow / ask / deny <em>数据</em>，不是写死的模式。</p>
+    </div>
+    <div class="pc">
+      <div class="pro"><b>好评</b>供应商独立；隐私好（除非选云模型，代码不出本机）；可按任务混搭模型。</div>
+      <div class="con"><b>批评</b>质量取决于你选的模型；配置量比商业工具大；出问题自己修；桌面端仍是 beta；Build 默认偏宽松（默认只拦重复的相同调用与项目外路径）。</div>
+    </div>
+    <div class="meta"><span>仓库：github.com/anomalyco/opencode</span><span>许可：MIT</span><span>同期汇总中星数最高的开源终端编程 agent</span></div>
+  </article>
+
+  <!-- DeepSeek Harness -->
+  <article class="case" data-cat="code open multi general" data-kw="deepseek harness dsh 插件 cordis 一切皆插件 沙箱 landlock 预览 安全审计">
+    <div class="case-head"><h3>DeepSeek Harness（dsh）<span class="co">DeepSeek 官方 · MIT · 开发者预览</span></h3><div class="tags"><span class="tag acc">编程 / 通用</span><span class="tag teal">开源</span><span class="tag amb">2026 年 8 月 13 日发布</span></div></div>
+    <p class="one">“一切皆插件”：在 Cordis 组合框架上，模型适配器、工具注册表、会话日志、乃至 agent 循环本身都是可替换插件，没有特权核心。</p>
+    <div class="body">
+      <p><b>架构：</b>插件可干净地增删（副作用可完全撤销）；四种模式（Standard / Minimal / Code / Creator）；供应商覆盖 Anthropic、OpenAI、Bedrock、Azure、Gemini Enterprise、DeepSeek 及任意 OpenAI 兼容网关；内置 Claude Code / Codex 子 agent 供应商（默认关闭）；只追加事件日志 → 恢复 / 分叉 / 重放 / 转录；沙箱为 Landlock（Linux）/ Seatbelt（macOS）/ 受限令牌运行器（Windows）；hooks.json 与 Claude / OpenAI 互通；MCP 客户端；Markdown 配置；一处审计数出 53 个内置工具。供应商广度上它复用了 Pi 的模型层。安装：npx @deepseek-ai/dsh web（本地 127.0.0.1:3080）。</p>
+      <p><b>采用速度：</b>星数报道按日期剧烈冲突（一天 74,578、48 小时约 95k、8 月底约 203k、10 月初约 242–247k，均为二手来源）——“本组中增长最快”这一轨迹有多源印证，确切数字没有。</p>
+    </div>
+    <div class="pc">
+      <div class="pro"><b>好评</b>可组合性走到了极致：连循环都可换；多供应商与本地网关友好；事件日志让恢复与审计成为默认能力。</div>
+      <div class="con"><b>批评 / 警示</b>开发者预览，官方明示会有破坏性变更且<em>未经安全审计</em>；其安全声明亦称沙箱“降低但不保证隔离”——应在一次性 VM 中以最小权限运行。一项被引用的研究（腾讯朱雀实验室，14,560 条轨迹）测得间接提示注入成功率按渠道最高 25.5%。v0.2 桌面端（2026 年 10 月）官方覆盖 macOS / Windows，Linux 只有社区构建。</div>
+    </div>
+    <div class="meta"><span>仓库：github.com/deepseek-ai/deepseek-harness</span><span>许可：MIT</span><span>技术栈：Node.js</span><span>生态旁支：CodeWhale（约 41k 星，Rust）、Reasonix（约 35k 星，MIT）</span></div>
+  </article>
+
+  <!-- Grok Build -->
+  <article class="case" data-cat="code open" data-kw="grok build xai 开源 tui plan 技能 mcp 数据上传 默认">
+    <div class="case-head"><h3>Grok Build<span class="co">xAI / SpaceXAI · Apache-2.0</span></h3><div class="tags"><span class="tag acc">编程</span><span class="tag teal">开源</span><span class="tag">约 26–27k 星（快照）</span></div></div>
+    <p class="one">2026 年 5 月作为 Grok 4.5 的编程 agent CLI 推出，2026 年 7 月 16 日开源（7 月 15 日宣布）。全屏、鼠标可交互的 TUI，带 Plan 模式与技能 + MCP 扩展。</p>
+    <div class="body">
+      <p><b>设计取向：</b>刻意镜像 Claude Code 的 CLI 界面，使其能作为“会话供应商”插入多 harness 编排器；自有模型（grok-build-0.1、Grok 4.x 家族）与自有鉴权；支持 ACP 与图片块、MCP。汇总资料将其归类为 Rust harness。</p>
+    </div>
+    <div class="pc">
+      <div class="pro"><b>好评</b>开源且界面与主流 harness 兼容，容易纳入既有编排；对已用 Grok 模型的人是顺手的官方选择。</div>
+      <div class="con"><b>信任注脚</b>早期 beta 默认开启数据上传；xAI 称已于 2026 年 7 月 12 日改为默认关闭并删除此前上传的编程数据，同时称用户关闭上传时零数据保留一直被尊重。这是“harness 的<em>默认值</em>比它的<em>宣称</em>更重要”的经典案例。</div>
+    </div>
+    <div class="meta"><span>仓库：github.com/xai-org/grok-build</span><span>许可：Apache-2.0</span></div>
+  </article>
+
+  <!-- Grok Bot -->
+  <article class="case" data-cat="general closed multi" data-kw="grok bot 云电脑 通用 数字同事 连接器 托管 子agent 订阅">
+    <div class="case-head"><h3>Grok Bot<span class="co">xAI / SpaceXAI · 托管闭源</span></h3><div class="tags"><span class="tag acc">通用</span><span class="tag">托管</span><span class="tag amb">细节多来自二手报道</span></div></div>
+    <p class="one">它不是编程 CLI，而是一个常驻云电脑的通用 agent 运行时——“数字同事”：主 agent 住在自己的云 VM 里（带专属浏览器、文件系统与终端），可召唤子 agent。</p>
+    <div class="body">
+      <p><b>形态：</b>数十个预置一键连接器（Drive、Notion、Gmail、1Password、日历、邮件、任务管理、银行等，据二手报道）；桌面（PC / Mac）+ 移动端 + grok.com；用户电脑关机任务照跑。2026 年 10 月 12 日起包含在 X 订阅档位中（一篇评测列出 Premium $30 / Super $100 / Ultra $200）。</p>
+      <p><b>Harness 要点：</b>Grok 4.7（2026 年 9 月 21 日，500k 上下文；200k 以内 $2/$6 每百万 token，200k 以上整单按 $4/$12）据称是“为原生理解 Grok Bot harness 而训练”的——这是 Codex 之外，2026 年最清晰的模型 ↔ harness 协同训练例子。Bot 的 harness 本身闭源托管（与开源的 Grok Build 相对照）。从业者建议：每个 Bot 只给一份工作；能用连接器就不用浏览器；在技能里写停止规则（“两个来源找不到就停下汇报”）；事件触发优于高频定时。</p>
+    </div>
+    <div class="note"><b>证据等级提醒：</b>Grok Bot 的多数细节来自评测与二手报道，而非本次调研取得的 xAI 官方文档摘录；另有一处来源称 Bot harness 主要出自 SpaceXAI 收购 Cursor 后的团队（2026 年 8 月完成收购），未经一手来源证实。引用时请保留这一限定。</div>
+    <div class="meta"><span>与 Grok Build 的关系：同为 xAI，一个开源编程 CLI，一个托管通用运行时</span></div>
+  </article>
+
+  <!-- Hermes -->
+  <article class="case" data-cat="general open multi" data-kw="hermes nous 自我改进 技能 消息网关 会话 压缩 血缘 开源 常驻">
+    <div class="case-head"><h3>Hermes Agent<span class="co">Nous Research · MIT · Python</span></h3><div class="tags"><span class="tag acc">通用 / 常驻</span><span class="tag teal">开源</span><span class="tag">约 210–255k 星（快照区间）</span></div></div>
+    <p class="one">开源的、<em>自我改进</em>的通用 agent harness（不限于编程）：终端 TUI、桌面应用、经 ACP 接 IDE，以及一个覆盖 20+ 平台的消息网关（Telegram、Discord、Slack、WhatsApp、Signal、Teams、邮件、Home Assistant 等）。</p>
+    <div class="body">
+      <p><b>架构：</b>同步对话循环（AIAgent）统一处理供应商选择、提示组装、工具执行、重试与压缩。Arize 的审计确认它实现了 harness 九要素：供应商适配层归一化各家 API；<em>工具注册与工具暴露相分离</em>；<em>会话即基础设施</em>；<em>基于血缘的上下文压缩</em>（压缩生成血缘而非改写历史）；40+ 内置工具 + MCP；执行后端含本地 / Docker / SSH / Daytona / Modal / Vercel Sandbox；AGENTS.md / HERMES.md（只取优先级最高的一份，向上找到 git 根）+ 全局 SOUL.md；技能只在需要时全量加载；有上限的 MEMORY.md / USER.md、FTS5 会话搜索、Honcho 用户建模；定时任务；消息网关。模型无关：30+ 供应商 + 任意 OpenAI 兼容端点。2026 年 2 月发布，主推在 RTX PC / DGX Spark 上以开源权重模型（如 Qwen）24/7 本地运行。</p>
+      <p><b>“自我改进”到底改什么：</b>改的是 harness，不是权重——发现重复任务时它会写一份 Markdown 技能，把结果存入本地 SQLite（经 FTS5 + LLM 摘要召回），并在后续使用中打磨这份技能。</p>
+    </div>
+    <div class="pc">
+      <div class="pro"><b>好评</b>通用常驻场景里最完整的开源实现之一；其 SECURITY.md 被称赞诚实：操作系统级隔离是唯一的真边界，其余都是尽力而为。</div>
+      <div class="con"><b>批评</b>没有任何机制验证自写技能是否正确——一份从某次幸运运行里蒸馏出的技能，可能把脆弱甚至错误的流程固化下来，还会被自信地反复复用。自写的自动化需要像人写的脚本一样过人工审查。</div>
+    </div>
+    <div class="meta"><span>许可：MIT</span><span>技术栈：Python</span><span>同类对照：OpenClaw 以 Gateway 控制面为中心，Hermes 以 agent 循环 + 学习周期为中心</span></div>
+  </article>
+
+  <!-- Muse -->
+  <article class="case" data-cat="code open closed multi" data-kw="muse meta spark 模型 官方 社区 spark code gadgets esp32 基准">
+    <div class="case-head"><h3>Meta Muse<span class="co">Muse Spark 模型 / Muse Code / 社区 harness</span></h3><div class="tags"><span class="tag acc">编程</span><span class="tag amb">三者需分清</span></div></div>
+    <p class="one">“Muse”至少指三样东西，教程里混用是常态——抄配置之前先确认它说的是哪一个。</p>
+    <div class="body">
+      <p><b>① Muse Spark（模型）：</b>Meta Superintelligence Labs 的前沿模型家族；Spark 1.3 于 2026 年 9 月 2 日发布，1M 上下文，闭源权重（该产品线有开源权重路线图，无日期；Spark 1.2 的开源权重于 2026 年 8 月 10 日<em>宣布</em>、截至核查时未交付；另有已交付的开源 30B 模型 Muse Glimmer，Apache-2.0）。它与 Muse Code 协同训练（用拒绝采样得到的 harness 轨迹）。<b>作为模型，它不是开源的。</b></p>
+      <p><b>② Muse Code（Meta 官方 harness）：</b>面向 Muse Spark 的终端编程 agent（经 Muse Code CLI 订阅或 Meta Model API key），带 agent 团队、无头 / CI 运行，并发布了 SDK（@muse-code/sdk、muse serve）。VulcanBench 报告 20（2026 年 8 月 28 日，23 个真实合并 PR）：同一 Muse Spark 1.2，裸 API 循环 52.2%（xhigh），经 Pi 达 69.6%——17.4 个百分点的 harness 效应。</p>
+      <p><b>③ 社区开源 harness：</b><b>Muse Spark Code</b>（github.com/RandyNorthrup/muse-spark-code）：免费、MIT、无遥测、无托管服务器、15 种语言、WCAG 2.2 AA；经 ACP 进 Zed / JetBrains / Neovim / Emacs，另有 Cursor / Windsurf / VSCodium / VS Code 扩展；可见的子 agent 地图（角色 / 状态 / token / 转录）；用隔离的无头浏览器自检网页改动（控制台错误 / 失败请求）；不阻塞的提问卡；内置 Muse Gadgets 技能（ESP32 构建 / 烧录 / 监视）。<b>Muse Gadgets SDK</b>（facebookincubator/muse-gadget-sdk，Apache-2.0）面向 ESP32 与 Linux / 树莓派。Meta 的 GitHub agent 食谱则是在 GitHub Actions 里跑 <b>OpenCode + Muse Spark</b>（issue 分诊 / PR 审查只读；打标签才触发修 bug 的 PR；必须人工合并；fork 安全要用 pull_request 而非 pull_request_target）。</p>
+    </div>
+    <div class="pc">
+      <div class="pro"><b>好评</b>便宜、省 token、1M 上下文编程；社区版把子 agent 的状态做成了可见的地图，验证（浏览器自检）内建在“完成”定义里。</div>
+      <div class="con"><b>批评</b>权重闭源、生态新（第三方技能远少于 Claude Code / Codex）；非官方社区 harness 明确声明与 Meta 无隶属关系。</div>
+    </div>
+    <div class="meta"><span>模型：闭源权重</span><span>社区 harness：MIT</span><span>Gadgets SDK：Apache-2.0</span></div>
+  </article>
+
+  </div>
+  <p class="noresult hidden" id="noResult">没有匹配的案例，换个关键词试试。</p>
+</section>
+
+<hr class="div">
+
+<!-- ============ 5. 更多开源项目 ============ -->
+<section id="more">
+  <div class="sec-head">
+    <div class="sec-num">SECTION 05</div>
+    <h2>名单之外：2025–2026 值得知道的开源 harness</h2>
+    <p>星数同为 2026 年 10 月汇总快照。先说一个贯穿本节的警告：星数会骗人——Claw-code（约 195k 星）被反复标记为“博物馆展品式 README”而非可用工具；Roo Code（约 24k）已归档；Trae Agent 自 2026 年 2 月起闲置。看许可、看最近提交、看默认设置，别只看星。</p>
+  </div>
+  <div class="mini-grid">
+    <div class="mini"><h3>Pi</h3><div class="m-meta">earendil-works/pi · 约 92–115k 星 · MIT / TypeScript</div><p>以极简为纲领的工具包：4 个核心工具、系统提示不到 1k token、ReAct 循环，其余一切皆为可选的 TypeScript 扩展——agent 甚至能按需给自己写扩展。按设计没有沙箱、没有权限弹窗（理由：那是“安全剧场”，请用操作系统 / 容器）。想<em>拥有</em>循环就 fork 它；它也是 token 效率的标尺。</p></div>
+    <div class="mini"><h3>Oh My Pi（omp）</h3><div class="m-meta">Pi 的分支 · Can Bölük · Rust 引擎重写</div><p>Pi 的极简核心、极大化扩展：60+ 供应商、31 个内置工具、LSP 诊断、DAP 调试器、持久执行内核、IDE 级界面。“如果 Pi 长成一个 IDE”的答案——采用前，先拿它的工具数对照 Pi 的主张想一遍。</p></div>
+    <div class="mini"><h3>OpenClaw</h3><div class="m-meta">openclaw/openclaw · 约 368–392k 星 · MIT / TypeScript</div><p>单个长驻 Gateway 守护进程（WebSocket，默认 127.0.0.1:18789，设备配对 + 签名挑战）统管 30+ 消息渠道、cron 调度器与数千个可安装的 SKILL.md “claws”（ClawHub）。记忆为每 agent 的 SQLite + FTS5 + 向量 / 混合检索 + “做梦”式整合。工具沙箱（Docker / Podman / SSH / OpenShell）<em>默认关闭</em>——这是其评测中最重要的注意事项。模型无关，无付费档、无托管服务（据其 README）。</p></div>
+    <div class="mini"><h3>Gemini CLI</h3><div class="m-meta">google-gemini/gemini-cli · 约 107k 星 · Apache-2.0</div><p>Google 的 CLI harness：1M 上下文、约 20 个工具、能<em>注入纠偏指引</em>的循环检测、配额耗尽时降级到更快的模型、影子 git 检查点（/rewind）、A2A 多 agent 服务器、技能 / 钩子 / 子 agent、VS Code 伴侣。<b>状态变化：</b>消费者服务已于 2026 年 6 月 18 日终止，现为付费 API key / Code Assist 标准与企业版；消费者替代品是闭源的 Antigravity CLI。</p></div>
+    <div class="mini"><h3>OpenHands</h3><div class="m-meta">OpenHands/OpenHands · 约 85–91k 星 · MIT / Python</div><p>自托管“自主工程师”的参照实现：Web 应用默认 Docker 沙箱（CLI 会先询问），浏览器 + 终端 + 文件编辑器 + 任务跟踪，经 LiteLLM 接 100+ 供应商，可无头 / CI 运行；官方称配最新模型 SWE-Bench Verified 约 72%。编程组里安装最重——当沙箱边界比 TUI 打磨更重要时选它。</p></div>
+    <div class="mini"><h3>Cline</h3><div class="m-meta">cline/cline · 约 68–70k 星 · Apache-2.0</div><p>IDE 优先（VS Code / JetBrains）+ CLI + SDK / 无头 CI 与定时 agent；模型无关（含本地）；默认每个动作都先问；7 个核心工具配 ripgrep 搜索。“住在编辑器里、且留有纸面记录”的选择。</p></div>
+    <div class="mini"><h3>Goose</h3><div class="m-meta">aaif-goose/goose · 约 55k 星 · Apache-2.0 / Rust</div><p>通用型（编程 + 研究 + 写作 + 自动化）桌面应用 + CLI + 可嵌入 API；15+ 供应商、70+ MCP 扩展——以扩展为能力模型而非固定工具集。对非开发者最友好的通用 harness；也接入了 Block 的 Buzz 团队聊天 / forge。</p></div>
+    <div class="mini"><h3>Aider</h3><div class="m-meta">Aider-AI/aider · 约 48–50k 星 · Apache-2.0 / Python</div><p>Git 优先的结对编程：<em>没有</em>通用工具循环，靠编辑格式 + 仓库地图工作，每次改动自动提交，执行命令前先问，无沙箱（git 就是安全网）。<b>维护警示：</b>汇总指出其自 2026 年 5 月 22 日起无新提交——推荐为入门工具前先核实现状。</p></div>
+    <div class="mini"><h3>Crush</h3><div class="m-meta">charmbracelet/crush · 约 28k 星 · FSL-1.1-MIT</div><p>打磨精良的 Go TUI，支持模型切换、MCP + LSP。它是归档项目 OpenCode（Kujtim 版）的延续。许可是“源码可用”、按期转 MIT 之前并非 OSI 开源——放进“开源”清单时这条脚注不能省。</p></div>
+    <div class="mini"><h3>Qwen Code</h3><div class="m-meta">QwenLM/qwen-code · 约 27–29k 星 · Apache-2.0</div><p>为 Qwen-Coder 调校的终端 / 桌面 / Web harness——与 Codex、Grok Build 同属“模型实验室自家 harness”的模式，这次对应 Qwen 家族。</p></div>
+    <div class="mini"><h3>Deep Agents</h3><div class="m-meta">langchain-ai/deepagents · 约 15k 星 · MIT / Python + JS/TS</div><p><em>库形态</em>的 harness：create_deep_agent(model, tools) 返回一个编译好的 LangGraph 图，自带规划工具（write_todos）、文件系统访问、子 agent 派生（task 工具）、摘要中间件与内置系统提示——明确定位为“通用版 Claude Code harness 复刻”，模型无关。其 CLI 仅靠 harness 改动把 Terminal-Bench 2.0 从 42.65% 做到 66.5%，是本报告最干净的“harness 效应”数字。也是 Open SWE 与 OpenWork（开源版 Claude Cowork 复刻）的地基。</p></div>
+    <div class="mini"><h3>SWE-agent</h3><div class="m-meta">SWE-agent/SWE-agent · 约 17k 星 · MIT / Python</div><p>普林斯顿的基准驱动研究 harness，提出“agent–计算机接口”（ACI）概念：agent 通过受约束的 shell / 文件接口行动并获得显式反馈，为在 SWE-bench 上被审计与打分而设计，而非日常驾驶。</p></div>
+    <div class="mini"><h3>browser-use</h3><div class="m-meta">browser-use/browser-use · 约 116–118k 星 · MIT / Python</div><p>浏览器 / 计算机使用 harness：在 Playwright 之上的 LLM 循环——模型看截图 + 无障碍树，决定点击 / 输入 / 滚动 / 抽取；密钥放在独立配置而非提示词里。也可作为 MCP 服务器供 Claude Code / Codex / Cursor 使用（注意：它自带的 agent 循环会比直接浏览器控制多出模型调用、延迟与成本）。托管版另提供托管浏览器、代理、验证码处理与档案。</p></div>
+    <div class="mini"><h3>Stagehand</h3><div class="m-meta">browserbase/stagehand · 约 21–24k 星 · MIT / TypeScript</div><p><em>混合式</em>浏览器 harness：已知步骤用确定性 Playwright 代码，动态页面用 AI 原语 act() / extract() / observe() / agent()；无障碍树剪枝号称把上下文从原始 HTML 的约 122k token 压到约 4k（约 30 倍，厂商演讲口径）。经 MCP 服务器（run / snapshot / screenshot）可与 Deep Agents 组合。</p></div>
+    <div class="mini"><h3>GPT-Researcher</h3><div class="m-meta">assafelovic/gpt-researcher · 约 29–30k 星 · Apache-2.0 / Python</div><p>研究型 agent harness：规划者拆解问题 → 并行执行 / 爬取 agent 覆盖 20+ 来源 → 上下文过滤（默认 Jev）→ 发布者写出 2,000+ 词带引用的报告（PDF / Word / Markdown）；Deep Research 模式按广度 / 深度递归成树，共享学习、引用与已访问 URL。LLM 与搜索可插拔，带 FastAPI + Web UI + Docker + MCP 服务器。</p></div>
+    <div class="mini"><h3>DeerFlow</h3><div class="m-meta">bytedance/deer-flow · 约 82k 星</div><p>字节跳动出品：以研究为先的 harness，后转为通用 agent。原版多 agent 深度研究无需搜索 API key（DuckDuckGo + 免 key 阅读器）；2.0 重写后定位为通用 harness、研究降为一项技能。研究类 harness 中星数最高；引用前请核实其许可与版本。</p></div>
+    <div class="mini"><h3>Agent Zero</h3><div class="m-meta">frdel/agent-zero · 约 19k 星 · MIT</div><p>“拥有自己一台电脑的 agent”：Docker 之上的 Web UI，常驻 agent 带工具与调度器，本地模型友好。是与 OpenClaw / Hermes 对照安全默认值时的自托管通用选手。</p></div>
+    <div class="mini"><h3>TrueForge / Omnigent</h3><div class="m-meta">约 6.1k / 10.6k 星 · MIT / Apache-2.0</div><p>2026 年 8–9 月出现的 Managed Agents 替代品。TrueForge：可自托管的近似平替 harness（完整循环、会话、定时、沙箱、审批、HTTP API、任意供应商；厂商称比 Managed Agents 便宜约 30–50%，按营销口径看待）。Omnigent：<em>元 harness</em>——在 Claude Code / Codex 等之上加一层治理（支出上限、审批门、策略）与可插拔沙箱；自标 alpha。</p></div>
+  </div>
+</section>
+
+<hr class="div">
+
+<!-- ============ 6. 对比表 ============ -->
+<section id="compare">
+  <div class="sec-head">
+    <div class="sec-num">SECTION 06</div>
+    <h2>横向对比：18 个项目的七个维度</h2>
+    <p>没有任何项目赢下所有列。反复出现的规律是：<em>沙箱的严格程度随工具威力上升</em>——Codex 是少量 shell 工具 + 最严的监狱；Pi 是少量工具 + 无监狱（且诚实标注）；OpenCode 是多工具 + 宽松默认——风险在默认值里，不在设计里。★ 强 · ◐ 有条件 · ○ 偏重。</p>
+  </div>
+  <div class="tblwrap">
+    <table>
+      <thead><tr><th>项目</th><th>定位</th><th>循环</th><th>工具 / 沙箱</th><th>上下文策略</th><th>多 agent</th><th>验证 / 评测</th><th>独立开发</th></tr></thead>
+      <tbody>
+        <tr><td><b>Claude Code</b></td><td>编程，终端/IDE/Web</td><td>ReAct + 压缩，约 40 工具</td><td>默认本地 shell；云端沙箱；5 种权限模式；可阻断钩子</td><td>CLAUDE.md、技能按需、子 agent 隔离、压缩</td><td>子 agent、Agent Teams、Projects、Dynamic Workflows（JS 程序，约 1k）</td><td>钩子、测试、独立评估者、浏览器 E2E</td><td>◐ 闭源订阅；扩展系统最佳</td></tr>
+        <tr><td><b>Codex CLI</b></td><td>编程，终端/IDE/云/CI</td><td>Rust 引擎；以 shell 为中心；新模型有 JS 运行器组合</td><td>默认操作系统监狱（Seatbelt / bubblewrap），网络关闭，提权走 schema；审批独立</td><td>压缩 + 保留推理；AGENTS.md 地图 → docs 树</td><td>子 agent（spawn_agent）、云端并行任务、app-server</td><td>CI、apply_patch、agent 间互评</td><td>★ 开源，前提是接受 OpenAI 模型</td></tr>
+        <tr><td><b>OpenCode</b></td><td>编程，任意模型</td><td>客户端 / 服务器循环，Build / Plan 双 agent</td><td>本地 shell；按工具 allow/ask/deny；LSP 回喂；git 撤销</td><td>AGENTS.md、SQLite 会话、技能、MCP（延迟 / 过滤）</td><td>并行会话、通用子 agent</td><td>LSP 诊断、经 shell 跑测试</td><td>★ 最佳开源日常主力</td></tr>
+        <tr><td><b>DeepSeek Harness</b></td><td>通用 + 编程，插件运行时</td><td>可替换的循环插件（Cordis）</td><td>53 工具；Landlock / Seatbelt / 受限令牌；策略门控询问</td><td>只追加事件日志，恢复 / 分叉 / 重放；Markdown 配置</td><td>子 agent（含 Claude / Codex 供应商，默认关闭）</td><td>会话转录、遥测；<em>尚无安全审计</em></td><td>◐ 强大但属预览版——隔离运行</td></tr>
+        <tr><td><b>Pi</b></td><td>编程工具包</td><td>极简 ReAct，4 工具，提示 &lt;1k</td><td>无沙箱、无弹窗——自备容器</td><td>按设计极简；扩展按需加载</td><td>扩展 / 子 agent 可选加入</td><td>shell 测试；完全透明</td><td>★ 想拥有循环的人选它</td></tr>
+        <tr><td><b>Hermes Agent</b></td><td>常驻通用 agent</td><td>同步对话循环，重试与压缩</td><td>40+ 工具 + MCP；本地 / Docker / SSH / Daytona / Modal；只认操作系统隔离</td><td>血缘压缩、AGENTS / HERMES + SOUL、有上限的 MEMORY、FTS5、自写技能</td><td>消息网关、定时任务、子 agent 渐成形</td><td>技能需人工审查；无内置验证者</td><td>◐ 个人自动化佳选</td></tr>
+        <tr><td><b>OpenClaw</b></td><td>常驻个人 / 团队 agent</td><td>Gateway 守护进程经渠道驱动</td><td>技能（claws）；工具沙箱<em>默认关闭</em>（Docker / Podman / SSH）</td><td>SQLite + FTS5 + 向量、做梦式整合、Markdown 记忆</td><td>渠道 + cron + 节点（设备）</td><td>审批面板、Control UI 轨迹</td><td>◐ 强大，先查默认设置</td></tr>
+        <tr><td><b>Grok Build</b></td><td>编程（Grok 模型）</td><td>类 Claude Code 的 CLI 循环，Plan 模式</td><td>本地 shell；技能 + MCP；ACP</td><td>技能按需；镜像 Claude Code 界面</td><td>经编排器（会话供应商模式）</td><td>经 shell 跑测试</td><td>★ 开源，生态尚小</td></tr>
+        <tr><td><b>Grok Bot</b></td><td>通用“同事”（托管）</td><td>常驻 VM 主 agent + 子 agent</td><td>云 VM + 浏览器 + 一键连接器</td><td>常驻 VM 状态；每 Bot 单一任务的用法指引</td><td>主 agent + 召唤式子 agent</td><td>敏感步骤人工接管；通知</td><td>○ 订阅制，harness 闭源</td></tr>
+        <tr><td><b>Muse Code / Muse Spark Code</b></td><td>编程（Muse Spark）</td><td>agent 循环 + 可见子 agent 地图；无头浏览器自检</td><td>本地 shell；无头浏览器验证；Gadgets 技能（ESP32）</td><td>子 agent 转录可见；不阻塞的提问卡</td><td>官方 agent 团队；社区版子 agent 地图</td><td>“完成”前查浏览器控制台 / 网络</td><td>★ 社区版 MIT / ACP</td></tr>
+        <tr><td><b>Gemini CLI</b></td><td>编程（Gemini）</td><td>循环 + 纠偏注入、模型降级</td><td>shell / 写入需确认；默认无沙箱</td><td>1M 上下文；影子 git /rewind 检查点</td><td>子 agent、A2A 服务器</td><td>经 shell 跑测试</td><td>◐ 现为付费；消费者看 Antigravity</td></tr>
+        <tr><td><b>OpenHands</b></td><td>自主软件工程</td><td>Docker 化 agent 循环，Web UI + 无头</td><td>默认 Docker 沙箱；浏览器 + 终端 + 编辑器</td><td>任务跟踪、会话状态</td><td>经编排 / 无头运行实现多 agent</td><td>测试、浏览器、SWE-bench 取向</td><td>○ 安装最重，隔离最强</td></tr>
+        <tr><td><b>Goose</b></td><td>通用桌面 / CLI agent</td><td>扩展驱动的循环</td><td>MCP 扩展（70+）；桌面 / CLI / API</td><td>供应商无关；桌面体验</td><td>扩展 + 子 agent</td><td>MCP 工具结果、人工审批</td><td>★ 通用型，对非开发者友好</td></tr>
+        <tr><td><b>Deep Agents</b></td><td>库形态 harness（自建用）</td><td>LangGraph 循环 + 中间件</td><td>你的工具 + 文件系统 + 沙箱后端（LocalSandbox）</td><td>write_todos、文件记忆、摘要中间件</td><td>原生 task 子 agent</td><td>Terminal-Bench 的 harness 效应证据（42.65→66.5%）</td><td>★ 最佳<em>库</em>起点</td></tr>
+        <tr><td><b>browser-use</b></td><td>浏览器 / 计算机使用</td><td>截图 + 无障碍树循环（Playwright）</td><td>浏览器沙箱；密钥与提示词分离</td><td>每步剪枝页面树</td><td>作为 MCP 工具嵌进其他 harness</td><td>截图、schema 化抽取</td><td>◐ 每步都有成本与延迟</td></tr>
+        <tr><td><b>Stagehand</b></td><td>浏览器自动化（混合）</td><td>确定性代码 + AI 的 act / extract / observe / agent</td><td>Playwright（本地或 Browserbase 云）</td><td>无障碍树剪枝（号称约 30 倍于原始 HTML）</td><td>经 MCP 服务器接入 Deep Agents</td><td>schema 类型化抽取</td><td>★ 适合已知流程</td></tr>
+        <tr><td><b>GPT-Researcher</b></td><td>深度研究</td><td>规划者 → 并行爬取 → 发布者</td><td>网络搜索 / 爬取工具；本地文档</td><td>树分支间共享学习、引用与已访问 URL；上下文过滤</td><td>规划 + 执行 agent（树形递归）</td><td>逐条主张带引用</td><td>★ 研究报告场景佳选</td></tr>
+        <tr><td><b>Aider / Cline / Crush</b></td><td>编程（合并列示）</td><td>Aider：编辑格式循环、无工具循环；Cline：IDE 循环、先问后做；Crush：TUI 循环</td><td>Aider：git 即安全、无沙箱；Cline：先问；Crush：MCP + LSP</td><td>Aider：仓库地图；Cline：编辑器上下文；Crush：模型切换</td><td>Cline：无头 / CI agent</td><td>Aider：每次改动一个提交</td><td>◐ Aider 已停滞需核实；Cline 对 VS Code 用户 ★</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<hr class="div">
+
+<!-- ============ 7. 实践 ============ -->
+<section id="practice">
+  <div class="sec-head">
+    <div class="sec-num">SECTION 07</div>
+    <h2>从业者在 X 与长文里真正达成的共识</h2>
+    <p>词源先说清，有两位“命名者”：Mitchell Hashimoto 在 2026 年 2 月 5 日《My AI Adoption Journey》中写道——“我不知道业界有没有公认的词，我已经管这叫 harness engineering 了：每当你发现 agent 犯了一个错，你就花时间工程化地解决它，让它永不再犯。”Ghostty 的 AGENTS.md 每一行都源于 agent 真实犯过的一次错——它是一份<em>失败日志</em>，不是愿望清单。LangChain 的 Viv Trivedy 随后（2 月 17 日、3 月 10 日）在 X 上给出分类学与那句传播最广的话：“一个编程 agent = 模型 + 它周围的 harness，harness 干了大部分活。”（其长文据报道达 73.3 万浏览、4,800 收藏）TheDeepFeed 的判语是：“Mitchell 命了名，Viv 是分类学家。”归属之外，还有一句反方声音值得并列：LlamaIndex 的 Jerry Liu 认为脚手架时代正在坍缩、上下文质量才是护城河。</p>
+  </div>
+
+  <div class="prin">
+    <div class="prin-item"><div class="pn">1</div><div><h3>薄 harness，厚技能</h3><p>老一代框架想把所有聪明都塞进 harness——上万 token 的系统提示。新做法反过来：harness 保持<em>薄</em>（一个小而干净、透明的循环），真正的专业知识住在<em>技能</em>里——外部的、可发现的、按需加载的知识包。harness 是操作系统，技能是应用。</p></div></div>
+    <div class="prin-item"><div class="pn">2</div><div><h3>“这不是模型问题，是配置问题”</h3><p>HumanLayer 的 Kyle Mistele《Skill Issue》的六件套：更好的指令、更多的能力、隔离的子任务执行、生命周期自动化、自我验证，外加规划者 / 执行者分离与类型检查反压。</p></div></div>
+    <div class="prin-item"><div class="pn">3</div><div><h3>确定性工具优先于提示词</h3><p>一句可直接套用的分工口诀：“必须每次都发生、绝不能漏的，是 hook；要读很多文件的，是子 agent；只在某些时候适用的，是技能。”钩子是保证，CLAUDE.md 只是建议——“钩子是唯一不依赖模型注意力的强制手段。”</p></div></div>
+    <div class="prin-item"><div class="pn">4</div><div><h3>测试驱动的 agent 循环</h3><p>Anthropic 2026 年 3 月的规划者 → 生成者 → 评估者三分，存在的理由就一句：“模型给自己的作业打分总是过于慷慨。”Stripe 的 Minions（大型单仓库生产实践）则是：蓝图（前馈式架构指引）+ 推送前传感器钩子（lint / 类型 / 测试，agent 在人看到之前先自我纠正）+ 一次性执行。</p></div></div>
+    <div class="prin-item"><div class="pn">5</div><div><h3>写循环，不要写提示词</h3><p>Claude Code 负责人 Boris Cherny（2026 年 6 月，Acquired Unplugged）：“我已经不给 Claude 写提示词了。我让循环去提示 Claude、去判断该做什么。我的工作是写循环。”OpenClaw 作者 Peter Steinberger 在 X 上（2026 年 6 月 7–8 日）：“你不该再提示编程 agent 了。你应该设计<em>去提示你的 agent 的循环</em>。”（据一家账号统计达 650 万浏览）Addy Osmani 随后将其命名为 loop engineering；其积木是：自动化 / 定时、worktree、技能、MCP 连接器、子 agent、外部状态。</p></div></div>
+    <div class="prin-item"><div class="pn">6</div><div><h3>Ralph Wiggum 循环</h3><p>Geoffrey Huntley 2025 年的土法炼钢：while 循环里把同一份 PROMPT.md 喂给全新会话，直到出现完成承诺 / 测试通过；状态活在文件与 git 历史里，而不是一条越拉越长的上下文里。Anthropic 后来把它做成官方 ralph-wiggum 插件，用 Stop 钩子堵住提前退出（/ralph-loop … --completion-promise COMPLETE --max-iterations 50）。“它不试图维持一个长命的、越来越聪明的会话。它接受：一个全新的上下文窗口才是最宝贵的资源。”</p></div></div>
+    <div class="prin-item"><div class="pn">7</div><div><h3>长时运行配方（Anthropic，2025 年 11 月）</h3><p>“想象一个由轮班工程师组成的软件项目，每个新工程师到岗时对上一班发生了什么一无所知。”初始化 agent（只跑一次）：init.sh、feature-list.json（200+ 特性、全部 passes:false）、初始提交。编程 agent（反复跑）：每会话只做一个特性、跑测试、更新 claude-progress.txt、写描述性提交。细节皆有出处：特性清单用 JSON 不用 Markdown（agent 会把 Markdown 写坏）；永不删除或修改测试；浏览器自动化（Puppeteer MCP）对 bug 发现的提升“显著”于只看代码级测试。</p></div></div>
+    <div class="prin-item"><div class="pn">8</div><div><h3>OpenAI 的 Codex 配方（Ryan Lopopolo，2026 年 2 月）</h3><p>3 名工程师、约 5 个月、约 100 万行、约 1,500 个 PR、零行手写。教训：巨大的 AGENTS.md 挤占了任务上下文且迅速过期——改为约 100 行的<em>地图</em>，指向结构化的 docs/ 树；架构规则写成<em>代码</em>（依赖分层、导入方向错了就让构建失败的结构测试、由 Codex 自己写的 linter）；每个 git worktree 一个可启动的应用；本地日志 / 指标 / 轨迹；agent 之间互评。“人负责掌舵，agent 负责执行。”“agent 不需要更多指令。它需要一个世界：在那里做对的事显而易见，做错的事很难。”</p></div></div>
+    <div class="prin-item"><div class="pn">9</div><div><h3>成本与延迟的共识打法</h3><p>按任务路由（强模型规划、廉价模型执行）；子 agent 与 worktree 都要花 token 与审查带宽；用<em>压缩</em>对抗无限拉长的上下文（上下文越长质量越掉，即“上下文腐烂”）；任何步骤能写下来的任务，用工作流（workflow）胜过用 agent（固定调用、固定上下文、可测试——而 agent 的方差是负债）。Codex 的 JS 运行器与 Stagehand 的树剪枝，本质上都是 token 效率型的 harness 设计，不是模型进步。</p></div></div>
+  </div>
+
+  <h3 style="font-size:20px;margin:36px 0 12px">失败模式速查：信号与 harness 级修复</h3>
+  <p style="color:var(--ink2);font-size:15px;margin:0 0 12px">注意每一行的修复都不是“换个更好的提示词”，而是改系统。</p>
+  <div class="tblwrap">
+    <table class="fail-tbl">
+      <thead><tr><th>失败模式</th><th>信号</th><th>Harness 级修复</th></tr></thead>
+      <tbody>
+        <tr><td>一次到位 / 提前宣布完成</td><td>做到 40% 就宣称完成（Anthropic 列为长时运行头号失败）</td><td>全 false 的特性清单；Ralph 循环 / Stop 钩子完成承诺；每会话只做一个特性</td></tr>
+        <tr><td>自我偏袒 / 自己给自己打分</td><td>agent 给自己的活打高分</td><td>独立评估者 agent（全新上下文、对抗评审）；高层行为测试放在 agent 改不到的地方</td></tr>
+        <tr><td>目标漂移 / 上下文腐烂</td><td>忘了目标、重复步骤、截断后质量断崖</td><td>带血缘的压缩；状态钉在文件里；每个工作单元开新会话；改提示前先看 token 计数</td></tr>
+        <tr><td>测试作弊</td><td>删 / 改失败的测试；在坏代码上宣布胜利</td><td>提示词 + 钩子 / CI 双层的测试棘轮（测试对 agent 不可变）；按<em>效果</em>评分（文件写了吗？工单建了吗？），不按声明</td></tr>
+        <tr><td>工具动物园</td><td>推理全耗在选工具上</td><td>少量通用工具；文件系统即结构；工具描述一行，完整文档按需加载</td></tr>
+        <tr><td>无限上下文自助餐</td><td>成本与延迟攀升，然后崩盘</td><td>从第一天就做上下文层：摘要、丢弃过期工具输出、子 agent 只回路径 + 一行摘要</td></tr>
+        <tr><td>死循环 / 卡死</td><td>相同的工具调用不断重复</td><td>重复检测 + 步数上限 + 最大迭代安全阀（harness 层做，模型自己不会察觉）</td></tr>
+        <tr><td>工具静默失败</td><td>空 / null 被读成“不存在”</td><td>工具输出字符串里明确区分“无数据”与“查询失败”</td></tr>
+        <tr><td>提示注入（直接 + 间接）</td><td>听从网页 / 邮件 / 文件里的指令行事</td><td>一切检索内容皆不可信数据；网络检索隔离到<em>无副作用工具</em>的子 agent；最小权限；敏感动作人工审批；红队安全评测</td></tr>
+        <tr><td>多 agent 级联</td><td>一个幻觉变成下游的承重墙；A↔B 乒乓</td><td>交接用契约（schema 而非散文）、验证步骤、共享轨迹、交接打分、扇出上限</td></tr>
+        <tr><td>成本失控</td><td>重试 × 扇出 × 长上下文</td><td>按会话的 token 预算且能<em>阻断</em>下一次调用；模型路由；指标看“每个<em>成功</em>任务的成本”，不是每 token 成本</td></tr>
+        <tr><td>杀不死的会话 / 状态丢失</td><td>周末跑一夜，崩溃丢了 6 小时</td><td>预算、卡死检测、检查点（git 提交即恢复单元；对 diff 做二分，不要对着聊天记录调试）</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 style="font-size:20px;margin:36px 0 4px">可直接抄的五条小贴士</h3>
+  <div class="grid2" style="margin-top:12px">
+    <div class="card"><h3>失败优先的 AGENTS.md</h3><p>从最小开始（概览 + 技术栈）。每一次真实翻车，沉淀成一条锋利的约束，并路由到正确的层（指令 / 钩子 / 工具 / 技能）。不写愿望式条目。—— Hashimoto</p></div>
+    <div class="card"><h3>一次只做一件事</h3><p>“这东西一次只擅长做一件事”（Lada Kesseler）。强制手段放在独立的窄通道里，而不是把指令文件写得更长；技能的<em>描述</em>是写给 agent 做调用决策的，不是写给人看的——描述太泛、互相重叠，agent 就选不出来。</p></div>
+    <div class="card"><h3>子 agent 的输出纪律</h3><p>子 agent 把产物写到磁盘，只返回路径 + 一行摘要；编排者的上下文保持干净。—— 社区长时运行经验</p></div>
+    <div class="card"><h3>薄的垂直切片</h3><p>Dex Horthy（HumanLayer）：把规划前置（需求 → 架构 → 程序设计 → 垂直切片），交付约 100–200 行、人能 curl / 点击 / 审查的曳光弹，而不是几千行的横向 PR；约 40% 的任务保持一次到位即可。</p></div>
+    <div class="card"><h3>评测集从 10 个任务起步</h3><p>“无聊但决定性”——每次改提示 / 模型 / 工具都跑一遍。没有它，每次微调都会让演示变好、同时悄悄弄坏另外两个任务。</p></div>
+    <div class="card"><h3>权限写成数据，安全不交给模型</h3><p>不要把模式写死在代码里：用声明式 allow / ask / deny 规则集表达行为，让模式自然涌现（OpenCode 的 plan 模式、Gemini 的 TOML 策略）。沙箱（操作系统 / 容器）与审批策略是<em>两个独立的层</em>；只靠提示词的安全“在每个演示里都成立，在第一次注入时就倒下”。Pi 与 Hermes 的诚实原则：没有操作系统沙箱，就明说没有。</p></div>
+  </div>
+</section>
+
+<hr class="div">
+
+<!-- ============ 8. 独立开发者方案 ============ -->
+<section id="starter">
+  <div class="sec-head">
+    <div class="sec-num">SECTION 08</div>
+    <h2>给独立开发者的方案：抄什么、避什么、怎么起步</h2>
+    <p>一句话版：从一个现成的薄 harness 起步（fork Pi 或 Deep Agents，或直接配置 OpenCode / Codex），在写任何“聪明”代码之前，你自己的代码应该不超过 500 行的循环 + 工具。</p>
+  </div>
+
+  <h3 style="font-size:19px;margin-bottom:6px">按优先级抄这 10 条</h3>
+  <ul class="checklist">
+    <li><b>薄循环、厚技能。</b>一个循环文件；技能是文件夹（SKILL.md + 脚本 + 参考资料），只在触发时加载，描述要具体到 agent 能据此做选择。两周没被触发过的技能，删。</li>
+    <li><b>少量通用工具，类型明确、失败安全。</b>read / write / edit / bash（外加一个搜索、一个测试运行器）胜过 40 个窄工具。每个工具：职责单一、输入有类型、明确区分“查询失败”与“无数据”、失败要安全。</li>
+    <li><b>文件 + git 即状态。</b>PROGRESS.md、feature-list.json（false → true）、init.sh、描述性提交。它扛得过压缩、崩溃与换会话——同时就是你的审计轨迹。长任务每会话一个特性、每个工作单元一个新窗口（Ralph 式）。</li>
+    <li><b>必须发生的事用确定性钩子。</b>每次编辑后格式化 / lint、阻断写受保护路径、测试不过 + 完成承诺未出现就不许退出。永远不要靠系统提示保安全。</li>
+    <li><b>先沙箱，后凭据。</b>操作系统沙箱（Docker / Seatbelt / bubblewrap），至少也要一次性 VM + 独立 worktree + 最小权限 token。永不给常驻 agent 你的主 shell + 主凭据。</li>
+    <li><b>独立验证者。</b>第二个 agent（全新上下文，最好换一个更便宜或不同的模型）跑测试、读 diff，只能给出带证据的 PASS / FAIL。高层测试放在作者 agent 改不到的地方。</li>
+    <li><b>评测集从第一天就有。</b>10 个真实任务，断言的是<em>预期效果</em>而非预期文本。每次改提示 / 工具 / 模型都跑。除了通过率，还要报“每个成功任务的成本”与“每任务步数”。</li>
+    <li><b>模型路由 + 预算。</b>强模型做规划与审查，便宜快的做实现与搜索；按会话的 token 预算要能<em>阻断</em>；步数上限 + 重复检测 + 最大迭代阀。按任务计量 token——压缩、树剪枝、JS 运行器式组合这类 harness 改动， routinely 胜过换模型。</li>
+    <li><b>可观测性当功能做。</b>只追加的运行日志（工具、参数、结果、token、allow/deny）。不能重放一次运行，就修不了它。</li>
+    <li><b>Pi 的 &lt;1k token 系统提示，是你要挑战的预算线。</b></li>
+  </ul>
+
+  <div class="dolist" style="margin-top:26px">
+    <div class="card">
+      <h3 style="color:var(--red)">避开这些</h3>
+      <ul>
+        <li><b>只靠提示词的权限</b>（“对生产环境小心点”），以及在一次性容器之外使用跳过权限式的 bypass。</li>
+        <li><b>四大反模式</b>：工具动物园、无限上下文自助餐、杀不死的会话、无评测的调参——每一个都“看起来像进展”，每一个都是日后的事故。</li>
+        <li><b>单 agent 还没可靠就搞多 agent 扇出。</b>子 agent 会成倍放大成本、藏匿失败（级联幻觉）、让审查更难。加子 agent 是为了<em>隔离</em>（如无副作用的网络检索），不是为了并行的排场。</li>
+        <li><b>自我打分与未经审查的自写技能。</b>从一次幸运运行蒸馏出的技能、或 agent 能改的测试集，都会给自己的错误发合格证。</li>
+        <li><b>按星数购物。</b>看许可（Crush 的 FSL 与 MIT 之别、若干项目的非 OSI 许可）、看活跃度（Aider 停滞、Gemini CLI 消费者关停、Roo Code 归档）、看默认设置——不是看星。</li>
+        <li><b>把检索内容当指令。</b>网页、issue、文件、粘贴内容都是数据。隔离检索，副作用要审批。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>第一周计划</h3>
+      <ul>
+        <li><b>第 1 天：</b>Pi 或 OpenCode 在容器里对着一个仓库跑起来。</li>
+        <li><b>第 2 天：</b>AGENTS.md 失败日志 + pre / post 钩子。</li>
+        <li><b>第 3 天：</b>特性清单 + Ralph 式循环，跑完一个数小时量级的任务。</li>
+        <li><b>第 4 天：</b>验证者 agent + 10 个任务的评测集。</li>
+        <li><b>第 5 天：</b>token / 成本日志 + 一次模型路由决策（规划者 vs 执行者）。</li>
+        <li>做完这些，<em>才</em>考虑第二个 agent。</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 style="font-size:19px;margin:34px 0 4px">最小起步架构（直接抄）</h3>
+  <p style="color:var(--ink2);font-size:15px">目录即设计：循环一个文件、工具一个文件、状态全在文件与 git 里、钩子管“必须”、验证者独立、每次运行留痕。</p>
+  <div class="copyrow"><button class="copybtn" id="copyArch">复制目录结构</button></div>
+  <pre class="codebox" id="archCode">solo-harness/
+  loop.py            # ~150 行：模型调用 → 工具调用 → 执行 → 回喂 → 重复
+                     # + 步数上限（如 50）、重复检测、token 预算、停止条件
+  tools.py           # read, write, edit, bash（限定工作目录）, search, run_tests
+                     # 类型化 schema；"FAILED: &lt;原因&gt;" 与 "EMPTY: &lt;查询&gt;" 明确区分
+  context/
+    AGENTS.md        # 只写失败日志：一行一条真实犯过的错，附原因
+    PROGRESS.md      # 当前目标、已完成清单、下一步（harness 重写，agent 只读）
+    feature-list.json# [{id, desc, passes:false}] —— “完成”的判据，不是散文
+  skills/&lt;name&gt;/SKILL.md   # 仅触发时加载；同目录放 scripts/ 与 references/
+  hooks/
+    pre_tool_use.py  # 阻断：受保护路径、破坏性命令、工作区外写入
+    post_tool_use.py # Write/Edit 后格式化 + lint（尽力而为，绝不静默失败）
+    stop.py          # 测试未过 或 未见 &lt;promise&gt;COMPLETE&lt;/promise&gt; 则阻断退出
+  verifier.py        # 全新上下文 agent：跑测试、看 diff，只回 PASS/FAIL + 证据
+  evals/             # 10 个任务 + 预期效果；每次变更跑 run_evals.sh
+  runs/              # 只追加 JSONL：时间戳、工具、参数、结果、token、成本
+  sandbox/           # Dockerfile（或 seatbelt/bubblewrap 配置）；agent 在这里跑，不在宿主机</pre>
+
+  <h3 style="font-size:19px;margin:30px 0 4px">循环伪代码（整个 harness 的概念全貌）</h3>
+  <pre class="codebox">while steps &lt; MAX and not done:
+    msg = model(prompt + pinned_state + recent_history)   # 钉住：目标 + 特性清单
+    for call in msg.tool_calls:                            # 钩子可在此阻断
+        result = execute_in_sandbox(call)                  # 类型化、超时、白名单
+        history.append(call, result)                       # 截断 / 摘要旧的工具输出
+    done = verifier_passes() and completion_promise_seen()
+log_run(); commit_if_passing()</pre>
+</section>
+
+<hr class="div">
+
+<!-- ============ 9. 未决问题 ============ -->
+<section id="open">
+  <div class="sec-head">
+    <div class="sec-num">SECTION 09</div>
+    <h2>没能核实的事，明说</h2>
+  </div>
+  <div class="grid2">
+    <div class="card"><h3>“Claude Work”</h3><p>在所检索的官方来源中未找到同名独立产品；本报告按 Projects / Agent Teams / Dynamic Workflows + 社区脚手架 + 多账号别名撞车来解释（见案例库）。若你指的是某个具体产品，请给出它的链接再深挖。</p></div>
+    <div class="card"><h3>实时星数、许可与价格</h3><p>文中数字均为二手来源的 2026 年 10 月快照且互相冲突（如 OpenCode 202k 对 222k、Hermes 210k 对 255k、DeepSeek Harness “两天 95k”对 247k），未在登录状态下对 GitHub 实时复核。发布星数排行榜前请逐个复查。</p></div>
+    <div class="card"><h3>Grok Bot / Muse Code / Claude Design 的内部细节</h3><p>主要依赖评测与二手报道，而非一手文档摘录；Grok Bot 的 Cursor 团队归属为单一来源说法。Claude Design 的定价与限额亦未取得一手确认。</p></div>
+    <div class="card"><h3>X 上的原帖</h3><p>Cherny、Steinberger、Trivedy 的引文由多个二手写作（播客、浏览量统计、长文）转述，本次调研未直接抓取 x.com 原帖。中文引用时请标注“据报道”。个别项目的技术栈说法在来源间冲突（如 OpenCode 的实现语言），冲突处本报告已省略或注明。</p></div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><b style="color:var(--ink2)">关于这份报告：</b>内容综合自 2026 年 10 月 27 日的公开网络调研（未登录、未做付费墙 / 厂商文档的实时浏览器核验）。定义、架构与实践原则有多源交叉印证；星数、价格等易变数字均为带日期的快照并标有出入。所有外部链接均为调研来源原文地址。</p>
+    <p><b style="color:var(--ink2)">主要来源（节选）：</b></p>
+    <div class="src-list">
+      <a href="https://dev.to/cwilkins507/what-is-an-ai-agent-harness-2fce">dev.to — What is an AI Agent Harness</a><br>
+      <a href="https://blog.abark.tech/agentic-harness-architecture/">blog.abark.tech — Agentic Harness Architecture</a><br>
+      <a href="https://www.scrums.com/platform/agent-harness">scrums.com — Agent Harness</a><br>
+      <a href="https://addyosmani.com/blog/agent-harness-engineering/">Addy Osmani — Agent Harness Engineering</a><br>
+      <a href="https://www.oreilly.com/radar/agent-harness-engineering/">O'Reilly Radar — Agent Harness Engineering</a><br>
+      <a href="https://www.thedeepfeed.ai/posts/2026-05-09-agent-harness-engineering-the-discipline/">TheDeepFeed — Harness Engineering, the Discipline</a><br>
+      <a href="https://arize.com/blog/how-hermes-implements-open-source-agent-harness-architecture/">Arize — How Hermes Implements Harness Architecture</a><br>
+      <a href="https://arize.com/blog/what-is-an-agent-harness-why-harnesses-are-replacing-agent-frameworks/">Arize — Why Harnesses Are Replacing Frameworks</a><br>
+      <a href="https://www.tyolab.com/blog/2026/06/13-what-an-ai-agent-harness-actually-does/">TYO Lab — What an AI Agent Harness Actually Does</a><br>
+      <a href="https://www.tyolab.com/blog/2026/06/13-the-coding-agent-shootout-and-the-best-harness-we-could-not-read/">TYO Lab — The Coding Agent Shootout</a><br>
+      <a href="https://pondero.ai/news/2026-09-18-claude-code-projects-multi-agent/">Pondero — Claude Code Projects Multi-Agent</a><br>
+      <a href="https://rits.shanghai.nyu.edu/ai/anthropic-launches-claude-managed-agents-for-scalable-ai-deployment/">NYU Shanghai — Claude Managed Agents</a><br>
+      <a href="https://github.com/JimLiu/baoyu-design">GitHub — baoyu-design</a><br>
+      <a href="https://appwrite.io/blog/post/claude-design">Appwrite — Claude Design</a><br>
+      <a href="https://deepseekharness.io/">deepseekharness.io</a><br>
+      <a href="https://automater.ai/intel/deepseek-harness-review/">Automater — DeepSeek Harness Review</a><br>
+      <a href="https://pinggy.io/blog/best_open_source_cli_coding_agents/">Pinggy — Best Open Source CLI Coding Agents</a><br>
+      <a href="https://dev.to/rosgluk/trending-open-source-ai-projects-on-github-october-2026-4d42">dev.to — Trending Open Source AI Projects, Oct 2026</a><br>
+      <a href="https://rerun.build/blog/open-source-ai-agents">Rerun — Open Source AI Agents</a><br>
+      <a href="https://vulcanbench.com/benchmarks/20-musespark-pi-harness.html">VulcanBench — Muse Spark × Pi Harness</a><br>
+      <a href="https://github.com/RandyNorthrup/muse-spark-code">GitHub — muse-spark-code</a><br>
+      <a href="https://rishimaheshwari.substack.com/p/stop-prompting-start-looping">Substack — Stop Prompting, Start Looping</a><br>
+      <a href="https://dev.to/ghalex/the-ralph-loop-running-coding-agents-for-hours-3po2">dev.to — The Ralph Loop</a><br>
+      <a href="https://shipwithai.io/blog/claude-md-failure-log-pattern/">ShipWithAI — CLAUDE.md Failure-Log Pattern</a><br>
+      <a href="https://www.oreilly.com/radar/long-running-agents/">O'Reilly Radar — Long-Running Agents</a><br>
+      <a href="https://octomind.run/blog/what-is-harness-engineering">Octomind — What is Harness Engineering</a><br>
+      <a href="https://dev.to/wrg32786/how-to-keep-a-claude-code-agent-running-for-days-without-losing-context-520b">dev.to — Keep an Agent Running for Days</a><br>
+      <a href="https://amplitude.com/explore/analytics/ai-agent-failure-modes">Amplitude — AI Agent Failure Modes</a><br>
+      <a href="https://dev.to/alexmercedcoder/designing-your-own-ai-harness-a-deep-dive-into-the-architecture-of-agent-loops-tools-context-2knl">dev.to — Designing Your Own AI Harness</a><br>
+      <a href="https://fastino.ai/blog/the-complete-guide-to-opencode-open-source-ai-coding-agents">Fastino — Complete Guide to OpenCode</a><br>
+    </div>
+    <p style="margin-top:18px">报告完 · Harness 工程深度报告 · 2026 年 10 月</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+  // case filtering + search
+  var btns = document.querySelectorAll('.fbtn');
+  var input = document.getElementById('caseSearch');
+  var cases = Array.prototype.slice.call(document.querySelectorAll('.case'));
+  var noRes = document.getElementById('noResult');
+  var cur = 'all';
+  function apply(){
+    var q = (input.value || '').trim().toLowerCase();
+    var shown = 0;
+    cases.forEach(function(c){
+      var catOk = cur === 'all' || (c.getAttribute('data-cat') || '').split(' ').indexOf(cur) !== -1;
+      var text = (c.textContent + ' ' + (c.getAttribute('data-kw') || '')).toLowerCase();
+      var qOk = !q || text.indexOf(q) !== -1;
+      var ok = catOk && qOk;
+      c.classList.toggle('hidden', !ok);
+      if (ok) shown++;
+    });
+    noRes.classList.toggle('hidden', shown !== 0);
+  }
+  btns.forEach(function(b){
+    b.addEventListener('click', function(){
+      btns.forEach(function(x){ x.classList.remove('on'); });
+      b.classList.add('on');
+      cur = b.getAttribute('data-f');
+      apply();
+    });
+  });
+  input.addEventListener('input', apply);
+
+  // copy architecture
+  var copyBtn = document.getElementById('copyArch');
+  copyBtn.addEventListener('click', function(){
+    var text = document.getElementById('archCode').textContent;
+    function done(){ copyBtn.textContent = '已复制 ✓'; setTimeout(function(){ copyBtn.textContent = '复制目录结构'; }, 1800); }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, done);
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch(e) {}
+      document.body.removeChild(ta); done();
+    }
+  });
+
+  // toc active state
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var secs = links.map(function(a){ return document.querySelector(a.getAttribute('href')); }).filter(Boolean);
+  function onScroll(){
+    var y = window.scrollY + 120, curId = null;
+    secs.forEach(function(s){ if (s.offsetTop <= y) curId = '#' + s.id; });
+    links.forEach(function(a){ a.classList.toggle('on', a.getAttribute('href') === curId); });
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+</body>
+</html>
