@@ -1,8 +1,10 @@
 # Harness 工程深度报告与案例库
 
+> 📖 在线阅读：[https://jaxxchen003.github.io/ai-harness-engineering/](https://jaxxchen003.github.io/ai-harness-engineering/)
+
 > 结论先说：**Agent = 模型 + Harness**。Harness 是模型与真实世界之间的运行层：循环、工具、沙箱、权限、上下文、验证、可观测性、多智能体编排与人工介入。2025–2026 年的共识是：大多数 agent 失败不是模型问题，而是 harness 配置问题。
 
-- 网页版报告：见本仓库 `index.html`（发布到 GitHub Pages 后可直接打开）
+- 网页版报告：[在线版](https://jaxxchen003.github.io/ai-harness-engineering/)（GitHub Pages，源文件见本仓库 `index.html`）
 - 英文原始调研报告：`docs/research-report-en.md`
 - 案例速查：`cases/cases.md`
 - 独立开发者最小起步架构：`docs/starter-architecture.md`
