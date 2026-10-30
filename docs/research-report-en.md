@@ -459,3 +459,55 @@ log_run(); commit_if_passing()
 - https://testmuai.medium.com/who-tests-the-agents-that-agents-use-add810aff0cf
 - https://docs.binary.ovh/d/dex-horthy-on-why-software-factories-fail-part-2.html
 - https://tessl.io/podcast/120
+
+---
+
+## Appendix (2026-10-30): Herdr and Oh My Pi
+
+Added after the original 2026-10-27 report. Star counts below were verified against GitHub on 2026-10-30; the original report's October snapshot caveat still applies.
+
+### A new layer in the taxonomy: runtime vs loop
+
+The original report distinguishes model, prompt, agent, framework, and harness. Herdr forces one more distinction: a **runtime layer above the harness**. It does not run a model loop; it owns the terminals that other harnesses live in. Confusing it with a coding harness misstates both its value (supervision and persistence) and its safety boundary (no sandbox).
+
+### Herdr (herdrdev/herdr) — the runtime your coding agents live on
+
+- Repository: https://github.com/herdrdev/herdr — Rust, Apache-2.0, ~46,837 stars / 3,736 forks, created 2026-03-27, still updated on 2026-10-30. Companion repos herdr-app (desktop) and herdr-core (terminal core) were split out in October 2026.
+- Architecture: a background server owns PTYs; the client can detach and reattach. Closing the client, losing SSH, or closing the laptop does not kill the work. After a server/machine restart, Herdr restores the saved layout and can resume supported agent sessions — the original processes do not survive, so "restore" is layout plus resumable sessions, not process resurrection.
+- Organisation: workspace (project or large task) -> tab (mode of work) -> pane (one terminal process). Every pane is labelled working, blocked, idle, or done, so supervision becomes scanning one sidebar instead of hunting through terminals for the agent waiting on an answer.
+- Multi-agent behaviour: Herdr does not assign tasks or review code. Agents drive Herdr from inside a pane through the CLI and local socket API (guarded by `HERDR_ENV=1` in the agent skill): spawn panes, prompt another agent, and wait until another agent is genuinely blocked. Plugins are executable workflows with manifest actions and event hooks; a marketplace direction exists. Local and saved SSH machines share one window with a combined agent list and independent reconnects.
+- Context and state: Herdr owns session state, not model context — detach, restart restore, pane-history replay, native agent resume, live handoff. Compression, memory, and tool context remain the inner agent's job.
+- Verification: none at the code level. Its contribution to verification is observability of state (which pane is blocked, which finished), which makes human intervention timely; tests, review, and merging still belong to the agent or an external flow.
+- Safety boundary, stated plainly: Herdr is a multiplexer, not a sandbox. Practitioner reviews stress that isolation is still the operator's job (machine-level egress allowlists, least-privilege IAM, per-pane session policy), and that git discipline is also the operator's job — several agents in Herdr share a checkout unless the operator creates a branch/worktree boundary first. Parallelism without that discipline produces merge conflicts, not isolation.
+- Fit: best when two or more agents already run in parallel and the bottleneck is supervision ("which agent needs me?"), especially on a remote box. Not a task allocator, reviewer, or workflow orchestrator.
+
+### Oh My Pi (can1357/oh-my-pi, command `omp`) — Pi, batteries included
+
+- Repository: https://github.com/can1357/oh-my-pi — MIT, TypeScript plus a Rust core, ~37,183 stars / 4,177 forks, forked 2025-12-31 from Mario Zechner's Pi, maintained by Can Bölük / Stencil Labs. README self-description (2026-10-30): 60+ providers, 31 built-in tools, 14 LSP operations, 28 DAP operations, ~80,000 lines of Rust core plus ~80,000 lines vendored (including the brush bash fork and 58 in-process command-line utilities).
+- Position vs Pi: Pi subtracts — 4 core tools, a system prompt under 1,000 tokens, everything else an extension. OMP adds — it wires the IDE into the harness itself. The original report listed OMP as a one-line "maximalist fork"; this appendix promotes it to a full case because it is now a distinct, defensible route, not a Pi variant.
+- Tools and code intelligence: a single `read` covers files, directories, archives, SQLite, PDFs, notebooks, URLs, SSH paths, and internal `://` schemes (`pr://`, `issue://`, `agent://`, `skill://`); `edit` uses Hashline content-hash anchors and rejects a patch whose anchors diverged; `ast_edit`/`ast_grep` do structural rewrites and queries; LSP informs every write (renames propagate through the language server); DAP drives real debuggers (lldb, dlv, debugpy) with breakpoints, stepping, threads, and variables.
+- Execution: persistent Python and Bun kernels that can call back into the agent's own tools over a loopback bridge; `bash` is an embedded brush shell with in-process coreutils, so the hot path avoids fork/exec. The `pi-iso` crate provides workspace isolation (apfs, btrfs, zfs, overlayfs, and others) — this is workspace isolation, not an OS sandbox for agent commands, and the two must not be conflated.
+- Model routing: 60+ providers with nine roles (default, smol, slow, plan, commit, vision, task, advisor, tiny), per-role fallback chains on 429/quota, path-scoped model sets, round-robin credentials, plus coding-plan subscription routes (Cursor, Copilot, Kimi, MiniMax, Qwen, and others) and local OpenAI-compatible endpoints.
+- Multi-agent and verification: `task` subagents run in parallel, optionally workspace-isolated, and return schema-validated objects rather than prose; an Agent Hub shows each subagent's live transcript and lets the operator steer, revive, or kill a worker. An advisor role pairs a second model on its own context to read every turn and inject notes or hard blockers. `/review` spawns reviewer subagents over a branch, commit, or uncommitted work and returns P0–P3 priorities with a verdict. `/collab` shares a live session by link or QR (read-only or read-write).
+- Context and memory: agent-curated memory (`retain`, `recall`, `reflect`, `learn`, `memory_edit`; local, Hindsight, or Mnemopi backends; project-scoped by default), session `checkpoint`/`rewind`, and stream rules that abort a stream on a regex match, inject a rule as a system reminder, retry from the same point, and survive compaction.
+- Cost and speed trade-off (secondary evaluation, not an official benchmark): in Composio's 30-task comparison on deepseek-v4-flash, Pi passed 20 tasks and OMP 17; cost per success was about $0.028 (Pi) vs $0.103 (OMP); median time about 132s vs 272s; average tokens about 559k vs 742k. OMP's own README claims Hashline took Grok Code Fast 1 from 6.7% to 68.3% and cut Grok 4 Fast output tokens by 61% on the same work. Read together: OMP is strongest where a weak model otherwise fails on edit format, and more expensive elsewhere. That is a trade-off, not a one-way win.
+- Trust and permissions (check before use): the README states that opening a repository loads project inputs by design — settings, extensions, hooks, tools, commands, skills, rules, and project MCP configuration. Secondary analysis further flags a looser project-trust gate and permissive approval defaults (reported as default yolo) than Pi's ask-first posture. Treat OMP's trust and approval configuration as the first thing to set, and do not run it at full speed in an untrusted repository.
+- Fit: best for heavy coding users who want LSP diagnostics, real debugging, structured subagent results, and a productised review flow out of the box, and who accept a larger audit surface and higher per-task cost. Users who want a loop small enough to read, fork, and embed should still pick Pi itself.
+
+### What these two additions change in the original conclusions
+
+1. The "thin loop + thick skills" starter advice still stands, but it is now explicitly a choice: OMP is the "thick loop" counter-example, and its cost is measurable (more code to audit, more tokens and time per task in the cited comparison).
+2. "Separate verifier from author" still stands, and OMP productises it (advisor, /review) while Herdr shows the other half of the problem: before verification, someone must notice which agent is blocked — supervision is a harness-layer concern in its own right.
+3. "Sandbox before credentials" still stands, and Herdr sharpens it: a tool that makes parallelism easy without isolation makes the sandbox question more urgent, not less.
+
+### Sources for this appendix
+
+- https://github.com/herdrdev/herdr
+- https://herdr.dev/docs
+- https://coles.codes/posts/herding-agents-with-herdr/
+- https://dev.to/pvgomes/herdr-and-the-throughput-case-for-parallel-coding-agents-4dk0
+- https://maxtokens.ai/posts/herdr-agent-multiplexer/
+- https://github.com/can1357/oh-my-pi
+- https://composio.dev/content/pi-vs-omp
+- https://www.coalesce.coach/en/glossary/pi-oh-my-pi
+- https://www.critique.sh/blog/open-source-coding-harness-comparison-2026
