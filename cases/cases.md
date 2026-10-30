@@ -30,7 +30,8 @@
 | 项目 | 仓库 | 许可证 / 语言 | 设计一句话 | 注意 |
 |---|---|---|---|---|
 | Pi | earendil-works/pi（原 badlogic/pi） | MIT / TypeScript | 极简工具箱：4 个核心工具、<1k token 系统提示词，其余全是按需扩展 | 约 92–115k 星；无沙箱、无审批弹窗是设计选择，不是疏忽 |
-| Oh My Pi (omp) | Pi 的 fork | Rust 引擎重写 | Pi 极简核心 + 极繁扩展：60+ 供应商、31 工具、LSP、DAP、持久执行内核 | 与 Pi 的“少即是多”论点对照着看 |
+| Oh My Pi (omp) | can1357/oh-my-pi | MIT / TypeScript + Rust 核心 | Pi 的“全副武装版”：60+ 供应商、31 工具、LSP（14 操作）+ DAP 真调试（28 操作）、Hashline 哈希锚点编辑、持久 Python/Bun 内核、schema 化子 agent 结果、advisor 第二模型、/review P0–P3 verdict、/collab 直播分享、agent 自管记忆 | 约 37,183 星（2026-10-30 核验）；与 Pi 对立的一条路线：功能面最宽，但更贵更慢，项目信任与审批默认需先收紧 |
+| Herdr | herdrdev/herdr | Apache-2.0 / Rust | **不是 agent 循环，是 agent 运行时**：后台服务器 + PTY 多路复用，detach 后工作不死、多机 SSH 合并列表、pane 状态 working/blocked/idle/done、CLI + socket API 让 agent 互相驱动、插件 | 约 46,837 星（2026-10-30 核验）；不跑模型、不替换 Claude Code/Codex 等，**不提供沙箱**，并行 ≠ 隔离，分支/worktree 边界要自己建 |
 | OpenClaw（原 Clawdbot） | openclaw/openclaw | MIT / TypeScript | 常驻 Gateway 守护进程 + 30+ 消息通道 + cron + 数千个可安装 skill（ClawHub） | 约 368–392k 星；工具沙箱默认关闭，先检查默认配置 |
 | Gemini CLI | google-gemini/gemini-cli | Apache-2.0 | 1M 上下文、约 20 工具、循环检测注入纠正指导、配额耗尽降级更快模型、shadow-git /rewind | 约 107k 星；消费者版 2026-06-18 停服，现为付费 API / 企业版 |
 | OpenHands（原 OpenDevin） | OpenHands/OpenHands | MIT / Python | 自托管自主工程师标杆：web 应用默认 Docker 沙箱、浏览器 + 终端 + 编辑器 + 任务追踪 | 约 85–91k 星；配置最重 |
@@ -49,9 +50,9 @@
 | TrueForge | TrueFoundry | MIT | 可自托管的 Managed Agents 风格替代：完整循环、会话、调度、沙箱、审批、HTTP API、任意供应商 | 约 6.1k 星；“便宜 30–50%”是厂商说法 |
 | Omnigent | Omnigent | Apache-2.0 | 元 harness：一个治理层（消费上限、审批门、策略）管 Claude Code / Codex 等，沙箱可插拔 | 约 10.6k 星；自标 alpha |
 
-## 横向对比（18 行 × 7 维，精简版）
+## 横向对比（精简版；2026-10-30 补 Herdr 与 Oh My Pi 两行）
 
-完整 18 行对比见英文报告 §5。本仓库只保留选型时最关键的维度：用途、沙箱、上下文、多智能体、验证、独立开发者适配度（★ 强 / ◐ 有条件 / ○ 重）。
+完整对比见英文报告 §5。本仓库只保留选型时最关键的维度：用途、沙箱、上下文、多智能体、验证、独立开发者适配度（★ 强 / ◐ 有条件 / ○ 重）。
 
 | 项目 | 沙箱 | 上下文 | 多智能体 | 验证 | 独立开发 |
 |---|---|---|---|---|---|
@@ -60,6 +61,8 @@
 | OpenCode | 本地 shell；按工具 allow / ask / deny；LSP 反馈；git 撤销 | AGENTS.md、SQLite 会话、skill、MCP | 并行会话、通用子 agent | LSP 诊断、shell 测试 | ★ 最佳开源日常工具 |
 | DeepSeek Harness | Landlock / Seatbelt / 受限 token；策略门控提问 | 追加式事件日志，可恢复/分叉/回放 | 子 agent（含 Claude / Codex 供应商，默认关） | 会话 transcript、遥测；无审计 | ◐ 强但预览版，隔离跑 |
 | Pi | 无沙箱、无审批弹窗（自带容器） | 极简设计；扩展按需加载 | 扩展/子 agent 按需 | shell 测试；全透明 | ★ 想自己拥有循环时 |
+| Oh My Pi (omp) | workspace 隔离（pi-iso），不等同 OS 沙箱；项目输入按设计加载，审批默认需先收紧（据二手分析） | 角色路由 + 记忆 retain/recall/learn、checkpoint/rewind、stream rules 注入 | task 子 agent（worktree 隔离 + schema 结果 + Agent Hub）+ advisor 第二模型 + /review | 独立评审子 agent、/review P0–P3 verdict、LSP/DAP 回馈 | ★ 重度编码开箱即用，◐ 陌生仓库先收紧配置 |
+| Herdr | **不提供沙箱**；隔离是你自己的事 | 不管模型上下文；管会话状态（detach、恢复、历史回放、agent resume） | pane 级并行 + 状态督导 + CLI/socket 让 agent 互相驱动 | 状态可观测，不做代码验证 | ★ 多 agent 并行督导，○ 别指望它分任务/评审 |
 | Hermes Agent | 本地 / Docker / SSH / Daytona / Modal；OS 隔离才是真边界 | 血缘压缩、AGENTS/HERMES + SOUL、 capped MEMORY、FTS5、自写 skill | 消息网关、定时任务、子 agent 演进中 | skill 需人工复核；无内置验证器 | ◐ 个人自动化很好 |
 | OpenClaw | 工具沙箱默认关（Docker / Podman / SSH） | SQLite + FTS5 + 向量、dreaming  consolidating、markdown 记忆 | 通道 + cron + 节点（设备） | 审批面板、Control UI 轨迹 | ◐ 强，先查默认配置 |
 | Grok Build | 本地 shell；Skills + MCP；ACP | 按需 skill；贴近 Claude Code 表面 | 经编排器作会话供应商 | shell 测试 | ★ 开源，生态小 |
