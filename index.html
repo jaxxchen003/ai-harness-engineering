@@ -243,6 +243,7 @@ footer p{margin:0 0 8px;max-width:860px}
     <a href="#practice">⑦ 实践与失败模式</a>
     <a href="#starter">⑧ 独立开发者方案</a>
     <a href="#open">⑨ 未决问题</a>
+    <a href="#supplement">⑩ 补记：Herdr 与 Oh My Pi</a>
   </div>
 </nav>
 
@@ -732,6 +733,26 @@ log_run(); commit_if_passing()</pre>
     <div class="card"><h3>Grok Bot / Muse Code / Claude Design 的内部细节</h3><p>主要依赖评测与二手报道，而非一手文档摘录；Grok Bot 的 Cursor 团队归属为单一来源说法。Claude Design 的定价与限额亦未取得一手确认。</p></div>
     <div class="card"><h3>X 上的原帖</h3><p>Cherny、Steinberger、Trivedy 的引文由多个二手写作（播客、浏览量统计、长文）转述，本次调研未直接抓取 x.com 原帖。中文引用时请标注“据报道”。个别项目的技术栈说法在来源间冲突（如 OpenCode 的实现语言），冲突处本报告已省略或注明。</p></div>
   </div>
+</section>
+
+<section id="supplement">
+  <div class="sec-head">
+    <div class="sec-num">SECTION 10 · 补记 2026-10-30</div>
+    <h2>Herdr 与 Oh My Pi：补上的一条分界线</h2>
+    <p>这两个项目补进来后，综合分析多了一条关键分界：一个是“管 agent 循环”的 harness，一个是“管 agent 进程”的运行时。把它们混成一类，就会误判各自的安全边界和适用场景。星数于 2026-10-30 在 GitHub 核验。</p>
+  </div>
+  <div class="grid2">
+    <div class="card"><h3>Herdr · agent 住的运行时</h3><p><b>herdrdev/herdr</b>，Rust，Apache-2.0，约 46,837 星。它不跑模型、不替换 agent，而是拥有 agent 所在的终端：Claude Code、Codex、Cursor、OpenCode、Grok 都可以在它里面跑。</p><p>后台服务器 + PTY 模型：关客户端、断 SSH、合盖，工作不死；重连恢复布局与可恢复会话（机器重启后原始进程并不存活）。每个 pane 标 working / blocked / idle / done，督导者一眼看到哪个 agent 在等你。agent 可通过 CLI 与本地 socket API 从 pane 内开 pane、给其他 agent 发提示、等另一个 agent 真正 blocked 再继续；本地与 SSH 机器可合并到一个窗口。</p><p><b>安全边界必须写清：Herdr 不是沙箱。</b>它买来的是感知与持久化，隔离仍是你自己的事；多个 agent 默认共享一个 checkout，分支 / worktree 边界要自己先建好，否则就是合并冲突。并行 ≠ 隔离。</p></div>
+    <div class="card"><h3>Oh My Pi · Pi 的全副武装版</h3><p><b>can1357/oh-my-pi</b>（命令 omp），MIT，TypeScript + Rust 核心，约 37,183 星。2025-12-31 fork 自 Mario Zechner 的 Pi，口号是“Coding agent with the IDE wired in”。原报告里它只占一行，这次升格为完整案例：它与 Pi 是对立的两条路线。</p><p>60+ 供应商、31 个内置工具、14 个 LSP 操作、28 个 DAP 操作、约 80k 行 Rust 核心。Hashline 用内容哈希锚点编辑，文件变了就拒绝补丁；LSP 接入每次写入，重命名走 language server；DAP 真调试（lldb / dlv / debugpy）。子 agent 并行、workspace 隔离、结果是 schema 校验的结构化对象；advisor 是第二个模型、独立上下文，每轮读主 agent 的动作并注入提醒或硬阻断；/review 给 P0–P3 优先级与 verdict；/collab 可直播分享会话。</p><p><b>代价与信任：</b>据二手评测（Composio，30 任务，deepseek-v4-flash），Pi 通过 20 个、OMP 通过 17 个，每次成功成本约 $0.028 对 $0.103，中位耗时约 132 秒对 272 秒——功能面最宽，但更贵更慢。打开仓库即按设计加载项目输入（设置、扩展、hook、skill、项目 MCP 配置），审批默认据二手分析较宽，陌生仓库先收紧配置再全速跑。</p></div>
+  </div>
+  <div class="tblwrap" style="margin-top:14px"><table><thead><tr><th>维度</th><th>Herdr</th><th>Oh My Pi</th></tr></thead><tbody>
+    <tr><td><b>它管什么</b></td><td>agent 进程与终端会话，不跑模型</td><td>完整 agent 循环，从模型到工具到评审</td></tr>
+    <tr><td><b>沙箱</b></td><td>不提供，隔离是你自己的事</td><td>workspace 隔离（pi-iso），不等同 OS 沙箱</td></tr>
+    <tr><td><b>多智能体</b></td><td>pane 级并行 + 状态督导 + CLI/socket 驱动</td><td>task 子 agent + schema 结果 + advisor 第二模型</td></tr>
+    <tr><td><b>验证</b></td><td>状态可观测，不做代码验证</td><td>独立评审子 agent + /review verdict</td></tr>
+    <tr><td><b>一句话选型</b></td><td>并行到“找不着哪个在等你”时最便宜的解法</td><td>重度编码开箱即用，陌生仓库先收紧配置</td></tr>
+  </tbody></table></div>
+  <p style="margin-top:14px">详细拆解见仓库 <a href="https://github.com/jaxxchen003/ai-harness-engineering/blob/main/cases/cases.md">cases/cases.md</a> 与英文报告附录（docs/research-report-en.md）。</p>
 </section>
 
 </main>

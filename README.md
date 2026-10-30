@@ -68,6 +68,48 @@ Harness 不是模型、不是一次提示词、也不完全等于框架：
 - **Hermes Agent**：Nous，MIT，Python。常驻通用 agent，血缘式上下文压缩、工具注册与暴露分离、自己写 skill 自我改进——但自写 skill 无人复核就可能固化错误流程。
 - **Meta Muse**：模型 Muse Spark 闭源（1M 上下文），官方 Muse Code + 社区 MIT 项目 Muse Spark Code（ACP、可见子 agent 地图、无头浏览器自检）；先分清教程说的是哪个 Muse。
 
+## 5.5 补记（2026-10-30）：Herdr 与 Oh My Pi
+
+这两个项目补进来后，综合分析多了一条关键分界线：**一个是“管 agent 循环”的 harness，一个是“管 agent 进程”的运行时**。把它们混成一类，就会误判各自的安全边界和适用场景。
+
+### Herdr（herdrdev/herdr）—— 不是又一个 agent，是 agent 住的运行时
+
+- **定位**：终端多路复用器 / agent 运行时，官方口号是 “the runtime your coding agents live on”。它不跑模型、不替换 agent，而是拥有 agent 所在的终端：Claude Code、Codex、Cursor、OpenCode、Grok 等都可以在它里面跑。
+- **仓库与热度（2026-10-30 核验）**：[herdrdev/herdr](https://github.com/herdrdev/herdr)，Rust，Apache-2.0，约 46,837 星、3,736 fork，2026-03-27 创建，2026-10-30 仍在更新；另有 herdr-app（桌面端）与 herdr-core（终端核心）两个拆分仓库。
+- **架构**：后台服务器 + 客户端的 PTY 模型。关掉客户端、SSH 断线、笔记本合盖，工作不死；重连后恢复保存的布局，并可恢复受支持 agent 的会话（注意：机器/服务器重启后原始进程并不存活，恢复的是布局与可恢复的会话，不是进程本身）。
+- **多智能体 / 编排**：workspace（项目/大任务）→ tab（工作方式）→ pane（具体终端进程）。每个 pane 标 working / blocked / idle / done，督导者一眼看到哪个 agent 卡住了、等你回答。agent 可通过 CLI 与本地 socket API 从 pane 内驱动 Herdr：开 pane、给其他 agent 发提示、等另一个 agent 真正 blocked 再继续；插件用可执行文件 + manifest 动作与事件钩子扩展，另有 Marketplace 方向。
+- **多机**：本地与已保存的 SSH 机器可放在同一个窗口，agent 列表合并、各机器独立重连，适合“远程大机器跑 agent、本地只看状态”。
+- **上下文 / 状态**：强项是会话状态而非模型上下文：detach、重启恢复、pane 历史回放、原生 agent resume、live handoff。模型上下文、压缩、记忆仍归 pane 里那个 agent 自己管，Herdr 不替它做。
+- **验证**：Herdr 本身不做代码验证。它的“验证”是状态可观测：哪个 pane 卡住、哪个完成、哪个在等审批，督导者据此介入；真正的测试、评审、合并仍靠 agent 或外部流程。
+- **安全边界（必须写清楚）**：Herdr 不是沙箱。按从业者评测的原话，Herdr 买来的是“感知与持久化”，隔离仍是你自己的事；若多个 agent 可能碰同一批文件，分支 / worktree 边界要你自己先建好，否则就是合并冲突。不要因为它能并行跑多个 agent，就默认每个 agent 是隔离的。
+- **适用**：已有 2 个以上 agent、经常并行、经常远程跑、经常被“哪个 agent 在等我”拖慢的人。它是 tmux / Zellij 的 agent 感知升级，不是任务分配器、不是评审器、不是工作流编排器。想要“产品替我分任务、建 worktree、走评审、定合并策略”的，Herdr 不替你做决定。
+
+### Oh My Pi（can1357/oh-my-pi，命令 omp）—— Pi 的“全副武装版”
+
+- **定位**：Pi 的 MIT fork，口号是 “Coding agent with the IDE wired in”，由 Stencil Labs 的 Can Bölük 维护，2025-12-31 fork 自 Mario Zechner 的 Pi。它回答的是 Pi 刻意不回答的问题：如果 harness 本来就该懂 IDE，那它该长什么样？
+- **仓库与热度（2026-10-30 核验）**：[can1357/oh-my-pi](https://github.com/can1357/oh-my-pi)，MIT，TypeScript + Rust 核心，约 37,183 星、4,177 fork；README 自述 60+ 供应商、31 个内置工具、14 个 LSP 操作、28 个 DAP 操作、约 80k 行 Rust 核心（另有约 80k 行 vendored 代码）。
+- **与 Pi 的根本分歧**：Pi 是减法——4 个工具、<1k token 系统提示词、其余靠扩展；OMP 是加法——把 IDE 能力做进 harness 本体。原报告里 OMP 只占一行“极繁 fork”，这次补记把它升格为完整案例，因为它已经不是“Pi 的一个变体”，而是与 Pi 对立的一条路线。
+- **工具 / 代码智能**：`read` 统一读文件、目录、归档、SQLite、PDF、笔记本、URL、SSH 路径与内部 `://` 协议（如 `pr://`、`agent://`、`skill://`）；`edit` 用 Hashline（内容哈希锚点，文件变了就拒绝补丁，不会把旧文本硬贴上去）；`ast_edit` / `ast_grep` 做结构化改写与查询；LSP 接入每次写入（重命名走 language server，跨文件引用一起改）；DAP 真调试（lldb / dlv / debugpy，断点、单步、看栈与变量，而不是靠 print 猜）。
+- **执行**：持久 Python 与 Bun 内核，且内核可通过 loopback 桥回调 agent 自己的工具（read / search / task）；`bash` 是内置 brush shell，58 个命令行工具 in-process，不用每次 fork/exec；`pi-iso` 做 workspace 隔离（apfs / btrfs / zfs / overlayfs 等），但这不等于给 agent 命令套了 OS 沙箱，引用时别把两者混淆。
+- **模型路由**：60+ 供应商，9 个角色路由（default / smol / slow / plan / commit / vision / task / advisor / tiny），按角色换模型、fallback 链（429 / 配额耗尽时接力）、路径级模型限定、同一供应商多 key 轮询；另有大量 coding-plan 订阅路由（Cursor、Copilot、Kimi、MiniMax、Qwen 等）。
+- **多智能体 / 验证**：`task` 子 agent 可并行、workspace 隔离、结果是 schema 校验过的结构化对象而非散文，Agent Hub 可看每个子 agent 的实时 transcript、发 steering 消息、复活或杀掉卡住的 worker；另有 advisor 角色——第二个模型、独立上下文，每轮读主 agent 的动作并注入提醒或硬阻断；`/review` 派评审子 agent 并行扫分支 / 提交 / 未提交改动，按 P0–P3 排优先级并给 verdict；`/collab` 可把 live 会话分享成链接或二维码（只读或读写）。
+- **上下文 / 记忆**：`retain` / `recall` / `reflect` / `learn` / `memory_edit` 做 agent 自管记忆（本地、Hindsight 或 Mnemopi 后端，默认项目级隔离），`checkpoint` / `rewind` 做会话压缩与回退；`stream rules` 可在模型跑偏时按正则中断流、注入规则并从同一点重试，且注入在压缩后仍保留。
+- **成本与速度的另一面（据二手评测，非官方基准）**：Composio 在同一模型（deepseek-v4-flash）上的 30 任务评测里，Pi 通过 20 个、OMP 通过 17 个；每次成功成本 Pi 约 $0.028、OMP 约 $0.103；中位耗时 Pi 约 132 秒、OMP 约 272 秒；平均 token Pi 约 559k、OMP 约 742k。也就是说，OMP 在“弱模型下一次改对”（如 Hashline 让 Grok Code Fast 1 从 6.7% 升到 68.3%，README 自述）上很强，但在通用任务上更贵、更慢——这是“功能面”与“运行成本”的经典交换，不是单向碾压。
+- **信任与许可（引用前必读）**：OMP README 明确写着，打开仓库即按设计加载项目输入（设置、扩展、hook、工具、命令、skill、规则、项目 MCP 配置）；二手分析进一步指出其项目信任门与审批默认较宽（有分析称默认 yolo），与 Pi 的“默认先问”不同。结论：OMP 适合你信任的仓库与可控环境，不适合直接打开陌生仓库就全速跑。
+- **适用**：想要“开箱即用、不用自己拼扩展”的重度编码用户，尤其看重 LSP 诊断、真调试、结构化子 agent 结果与评审流程的人；想要“循环小到能读完、能 fork、能嵌入别的产品”的人，仍应选 Pi 本体。
+
+### 两项目放进原有横向对比，结论怎么变
+
+| 维度 | Herdr | Oh My Pi | 原报告的启示是否还成立 |
+|---|---|---|---|
+| 它管什么 | agent 进程与终端会话，不跑模型 | 完整 agent 循环，从模型到工具到评审 | 成立，且要加一层：harness 之上还有“运行时层” |
+| 沙箱 | 不提供，隔离是你自己的事 | workspace 隔离（pi-iso），不等同 OS 沙箱 | 成立：沙箱严格度仍随工具权力上升，但 Herdr 提醒你“并行 ≠ 隔离” |
+| 多智能体 | pane 级并行 + 状态督导 + CLI/socket 驱动 | task 子 agent + worktree 隔离 + schema 结果 + advisor | 成立：OMP 证明“结构化交接”比“散文交接”更能防级联幻觉；Herdr 证明“先看见谁卡住”比“多开几个 agent”更先解决瓶颈 |
+| 验证 | 状态可观测，不做代码验证 | 独立评审子 agent + advisor + /review verdict | 成立：验证者与作者分离仍是铁律，OMP 只是把它产品化了 |
+| 独立开发者适配 | ★ 适合多 agent 并行督导，但别指望它替你分任务 | ★ 适合重度编码开箱即用，◐ 信任陌生仓库前先收紧配置 | 原“薄循环 + 厚技能”仍是起点；OMP 是“厚循环”的代表，选它等于接受更高的审计与运行成本 |
+
+**一句话选型**：只有一个 agent 在跑，先别上 Herdr；已经并行到“找不着哪个在等你”了，Herdr 是最便宜的解法。想要 Pi 的可读性，选 Pi；想要 Pi 的生态但不想自己拼 IDE 能力，选 OMP，并把它的项目信任与审批默认当作第一项配置来检查。
+
 ## 6. 从业者原话（按二手报道归因，见英文报告来源节）
 
 - Mitchell Hashimoto（2026-02-05）：“每次 agent 犯错，就去工程化一个方案，让它再也不犯同样的错。”`AGENTS.md` 应该是失败日志，不是愿望清单。
